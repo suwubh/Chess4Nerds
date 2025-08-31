@@ -12,7 +12,7 @@ Real-Time: WebSockets
 
 State Management: Redis
 
-Database: (add here if you’re using one, e.g., MongoDB/Postgres)
+Database: Postgres
 
 ✨ Features
 
