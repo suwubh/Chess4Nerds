@@ -1,37 +1,107 @@
-Overview
-Chess4Nerds is a full‑stack multiplayer chess app built with React, Node.js, TypeScript, WebSockets, and Redis to deliver real‑time gameplay, matchmaking, and personalized themes.
-It includes authentication, an Elo‑style rating system, in‑game chat, a computer opponent mode, and persistent leaderboards with match history for a complete chess experience.
+♟️ Chess4Nerds
 
-Key features
-User authentication with signup/login flows for secure session management.
+Chess4Nerds is a full-stack, multiplayer chess application built for nerds who love both clean code and strategic gameplay. The platform delivers a seamless online chess experience with real-time multiplayer support, AI-powered single-player mode, and rich community features like leaderboards, ratings, and in-game chat.
 
-Matchmaking to create or join games quickly with minimal friction.
+🚀 Tech Stack
 
-Real‑time gameplay powered by WebSockets for instant move synchronization.
+Frontend: React + TypeScript
 
-Elo‑style rating with dynamic adjustments after each game to reflect skill.
+Backend: Node.js + TypeScript
 
-Custom themes for boards and UI, including a bubblegum theme variant.
+Real-Time: WebSockets
 
-Play vs Computer mode using a built‑in chess engine for solo practice.
+State Management: Redis
 
-In‑game chat to coordinate and banter with opponents.
+Database: (add here if you’re using one, e.g., MongoDB/Postgres)
 
-Leaderboard and match history to track progress over time.
+✨ Features
 
-Tech stack
-Frontend: React + TypeScript for a typed, component‑driven UI.
+🔐 User Authentication – Secure signup/login to manage your profile.
 
-Backend: Node.js + TypeScript for a scalable service layer.
+🎮 Matchmaking System – Create or join games instantly with friends or random players.
 
-Transport: WebSockets for low‑latency, bidirectional updates.
+⏱ Real-Time Gameplay – WebSocket-powered instant move updates for a smooth experience.
 
-Data layer: Redis for real‑time state coordination and ephemeral storage.
+📈 Elo-Style Rating System – Dynamic rating adjustments after each match.
 
-Styling: Tailwind CSS with extended theme tokens (boardDark, boardLight, bubblegum).
+🎨 Custom Themes – Personalize your chessboard with unique styles.
 
-Icons: lucide-react for crisp, consistent navigation icons.
+🤖 Play vs Computer – Challenge the built-in chess engine for solo practice.
 
-Theming
-The UI supports custom themes using Tailwind’s extended palette, including boardDark (#9A9484), boardLight (#EAEAEA), and a bubblegum light‑pink token for theme‑based styling.
-Theme usage is applied at the component level so icon and text colors adapt to “default” (dark gray) or “bubblegum” (light pink) without disrupting layout or behavior.
+💬 In-Game Chat – Communicate with opponents while playing.
+
+🏆 Leaderboard & Match History – Track performance and progress over time.
+
+📸 Screenshots (Optional)
+
+(Add images or GIFs of gameplay, matchmaking, and chat features here)
+
+⚡ Getting Started
+1. Clone the repository
+git clone https://github.com/suwubh/Chess4Nerds.git
+cd Chess4Nerds
+
+2. Install dependencies
+# Install server dependencies
+cd backend
+npm install
+
+# Install client dependencies
+cd ../frontend
+npm install
+
+3. Set up environment variables
+
+Create a .env file in both backend and frontend with your config values. Example:
+
+# Backend
+PORT=5000
+REDIS_URL=redis://localhost:6379
+JWT_SECRET=your_secret_key
+
+# Frontend
+VITE_API_URL=http://localhost:5000
+
+4. Run the application
+# Start backend
+cd backend
+npm run dev
+
+# Start frontend
+cd ../frontend
+npm run dev
+
+
+The app will be live at: http://localhost:5173
+ (or whichever port Vite is running).
+
+🛠️ Development Roadmap
+
+ Add spectating mode.
+
+ Mobile responsive UI.
+
+ Enhanced chess engine with adjustable difficulty.
+
+ Tournaments & timed matches.
+
+🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+Feel free to check the issues page
+.
+
+📜 License
+
+This project is licensed under the MIT License
+.
+
+🙌 Acknowledgements
+
+chess.js
+ – chess logic library.
+
+stockfish.js
+ – WebAssembly chess engine.
+
+The open-source community ❤️
