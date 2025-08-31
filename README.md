@@ -89,11 +89,7 @@ The app will be live at: http://localhost:5173
 
 Contributions, issues, and feature requests are welcome!
 Feel free to check the issues page
-.
 
-📜 License
-
-This project is licensed under the MIT License
 .
 
 🙌 Acknowledgements
