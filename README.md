@@ -46,25 +46,38 @@ cd Chess4Nerds
 cd backend
 npm install
 
+# Install websocket server dependencies
+cd ../ws
+npm install
+
 # Install client dependencies
 cd ../frontend
 npm install
 
 3. Set up environment variables
 
-Create a .env file in both backend and frontend with your config values. Example:
+Create a .env file in backend, ws, and frontend directories with your config values. Example:
 
 # Backend
 PORT=5000
 REDIS_URL=redis://localhost:6379
 JWT_SECRET=your_secret_key
 
+# WebSocket server
+WS_PORT=5001
+REDIS_URL=redis://localhost:6379
+
 # Frontend
 VITE_API_URL=http://localhost:5000
+VITE_WS_URL=ws://localhost:5001
 
 4. Run the application
 # Start backend
 cd backend
+npm run dev
+
+# Start WebSocket server
+cd ../ws
 npm run dev
 
 # Start frontend
@@ -72,8 +85,8 @@ cd ../frontend
 npm run dev
 
 
-The app will be live at: http://localhost:5173
- (or whichever port Vite is running).
+Now open http://localhost:5173
+ in your browser and enjoy Chess4Nerds ♟️
 
 🛠️ Development Roadmap
 
