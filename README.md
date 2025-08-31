@@ -32,9 +32,6 @@ Database: Postgres
 
 🏆 Leaderboard & Match History – Track performance and progress over time.
 
-📸 Screenshots (Optional)
-
-(Add images or GIFs of gameplay, matchmaking, and chat features here)
 
 ⚡ Getting Started
 1. Clone the repository
