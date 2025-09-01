@@ -13,6 +13,8 @@ import friendIcon from '../../public/friendship.png';
 import GameModeComponent from './GameModeComponent';
 
 export function PlayCard() {
+  const navigate = useNavigate();
+
   const gameModeData = [
     {
       icon: (
@@ -39,7 +41,10 @@ export function PlayCard() {
       ),
       title: 'Play vs Computer',
       description: 'Challenge a bot from easy to master',
-      disabled: true,
+      onClick: () => {
+        navigate('/game/computer');
+      },
+      disabled: false, // Enable computer mode
     },
     {
       icon: (
@@ -51,11 +56,10 @@ export function PlayCard() {
       ),
       title: 'Play a Friend',
       description: 'Invite a Friend to a game of Chess',
-      disabled: true,
+      disabled: true, // Keep this disabled for now
     },
   ];
 
-  const navigate = useNavigate();
   return (
     <Card className="bg-transparent border-none">
       <CardHeader className="pb-3 text-center">
@@ -68,8 +72,8 @@ export function PlayCard() {
         <CardDescription />
       </CardHeader>
       <CardContent className="grid gap-2 cursor-pointer mt-1">
-        {gameModeData.map((data) => {
-          return <GameModeComponent {...data} />;
+        {gameModeData.map((data, index) => {
+          return <GameModeComponent key={index} {...data} />;
         })}
       </CardContent>
     </Card>

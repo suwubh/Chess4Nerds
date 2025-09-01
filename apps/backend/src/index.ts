@@ -8,6 +8,8 @@ import session from 'express-session';
 import passport from 'passport';
 import cookieParser from 'cookie-parser';
 import { COOKIE_MAX_AGE } from './consts';
+import leaderboardRoutes from './router/leaderboard';
+import gameHistoryRoutes from './router/gameHistory';
 
 const app = express();
 
@@ -38,6 +40,9 @@ app.use(
     credentials: true,
   }),
 );
+
+app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/games', gameHistoryRoutes);
 
 app.use('/auth', authRoute);
 app.use('/v1', v1Router);

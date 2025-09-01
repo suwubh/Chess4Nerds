@@ -4,11 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-
     "dev": "esbuild ./src/index.ts --bundle --platform=node --outfile=dist/index.js --sourcemap && node dist/index.js",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint --fix ."
-
   },
   "keywords": [],
   "author": "",
@@ -16,6 +14,7 @@
   "dependencies": {
     "@prisma/client": "^5.12.1",
     "@repo/db": "*",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/ws": "^8.5.10",
     "chess.js": "^1.0.0-beta.8",
     "jsonwebtoken": "^9.0.2",

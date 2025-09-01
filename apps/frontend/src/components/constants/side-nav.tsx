@@ -1,4 +1,5 @@
-import { PuzzleIcon, LogInIcon, LogOutIcon, SettingsIcon } from 'lucide-react';
+import { PuzzleIcon, LogInIcon, LogOutIcon, SettingsIcon, TrophyIcon, UserIcon } from 'lucide-react';
+
 import { useThemeContext } from '@/hooks/useThemes'; // Import theme context
 
 const BACKEND_URL =
@@ -9,9 +10,20 @@ export const UpperNavItems = [
     title: 'Play',
     icon: PuzzleIcon,
     href: '/game/random',
-    colorKey: 'boardDark', // use symbolic color key
+    colorKey: 'boardDark',
   },
-  // ... other items
+  {
+    title: 'Leaderboard',
+    icon: TrophyIcon,
+    href: '/leaderboard',
+    colorKey: 'boardDark',
+  },
+  {
+    title: 'Profile', 
+    icon: UserIcon,
+    href: '/profile',
+    colorKey: 'boardDark',
+  },
 ];
 
 export const LowerNavItems = [
@@ -51,11 +63,11 @@ export function NavItem({ item }: { item: typeof UpperNavItems[0] }) {
   const { theme } = useThemeContext();
   const Icon = item.icon;
   const colorClass = getNavItemColorClass(theme, item.colorKey);
-  
+
   return (
-    <a href={item.href} className={`flex items-center gap-2 ${colorClass}`}>
+    <div className={colorClass}>
       <Icon />
-      <span>{item.title}</span>
-    </a>
+      {item.title}
+    </div>
   );
 }

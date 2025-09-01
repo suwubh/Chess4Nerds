@@ -1,38 +1,20 @@
-import { randomUUID } from 'crypto';
 import { WebSocket } from 'ws';
-import { userJwtClaims } from './auth';
+import { User } from './types';
 
-export class User {
-  public socket: WebSocket;
-  public id: string;
-  public userId: string;
-  public name: string;
-  public isGuest?: boolean;
-
-  constructor(socket: WebSocket, userJwtClaims: userJwtClaims) {
-    this.socket = socket;
-    this.userId = userJwtClaims.userId;
-    this.id = randomUUID();
-    this.name = userJwtClaims.name;
-    this.isGuest = userJwtClaims.isGuest;
-  }
-}
-
-class SocketManager {
+export class SocketManager {
   private static instance: SocketManager;
   private interestedSockets: Map<string, User[]>;
-  private userRoomMappping: Map<string, string>;
+  private userRoomMapping: Map<string, string>;
 
   private constructor() {
-    this.interestedSockets = new Map<string, User[]>();
-    this.userRoomMappping = new Map<string, string>();
+    this.interestedSockets = new Map();
+    this.userRoomMapping = new Map();
   }
 
   static getInstance() {
     if (SocketManager.instance) {
       return SocketManager.instance;
     }
-
     SocketManager.instance = new SocketManager();
     return SocketManager.instance;
   }
@@ -42,40 +24,90 @@ class SocketManager {
       ...(this.interestedSockets.get(roomId) || []),
       user,
     ]);
-    this.userRoomMappping.set(user.userId, roomId);
+    this.userRoomMapping.set(user.userId, roomId);
   }
 
   broadcast(roomId: string, message: string) {
     const users = this.interestedSockets.get(roomId);
     if (!users) {
-      console.error('No users in room?');
+      console.error("No users in room to broadcast the message");
       return;
     }
 
     users.forEach((user) => {
-      user.socket.send(message);
+      if (user.socket.readyState === WebSocket.OPEN) {
+        user.socket.send(message);
+      }
+    });
+  }
+
+  // Keep this method for other potential use cases
+  broadcastToOthers(roomId: string, message: string, excludeUserId: string) {
+    const users = this.interestedSockets.get(roomId);
+    if (!users) {
+      console.error("No users in room to broadcast the message");
+      return;
+    }
+
+    users.forEach((user) => {
+      if (user.userId !== excludeUserId && user.socket.readyState === WebSocket.OPEN) {
+        user.socket.send(message);
+      }
     });
   }
 
   removeUser(user: User) {
-    const roomId = this.userRoomMappping.get(user.userId);
+    const roomId = this.userRoomMapping.get(user.userId);
     if (!roomId) {
-      console.error('User was not interested in any room?');
+      console.error("User was not interested in any room?");
       return;
     }
-    const room = this.interestedSockets.get(roomId) || []
-    const remainingUsers = room.filter(u =>
-      u.userId !== user.userId
-    )
-    this.interestedSockets.set(
-      roomId,
-      remainingUsers
-    );
+
+    const room = this.interestedSockets.get(roomId) || [];
+    const remainingUsers = room.filter((u) => u.userId !== user.userId);
+    this.interestedSockets.set(roomId, remainingUsers);
     if (this.interestedSockets.get(roomId)?.length === 0) {
       this.interestedSockets.delete(roomId);
     }
-    this.userRoomMappping.delete(user.userId);
+    this.userRoomMapping.delete(user.userId);
+  }
+
+  sendToUser(userId: string, message: string) {
+    const roomId = this.userRoomMapping.get(userId);
+    if (roomId) {
+      const room = this.interestedSockets.get(roomId);
+      if (room) {
+        const user = room.find(u => u.userId === userId);
+        if (user && user.socket.readyState === WebSocket.OPEN) {
+          user.socket.send(message);
+        }
+      }
+    }
+  }
+
+  broadcastToAll(message: string) {
+    this.interestedSockets.forEach((room) => {
+      room.forEach((user) => {
+        if (user.socket.readyState === WebSocket.OPEN) {
+          user.socket.send(message);
+        }
+      });
+    });
+  }
+
+  removeRoom(roomId: string) {
+    const users = this.interestedSockets.get(roomId);
+    if (users) {
+      users.forEach(user => {
+        this.userRoomMapping.delete(user.userId);
+      });
+    }
+    this.interestedSockets.delete(roomId);
+  }
+
+  get rooms() {
+    return this.interestedSockets;
   }
 }
 
-export const socketManager = SocketManager.getInstance()
+export const socketManager = SocketManager.getInstance();

@@ -12,9 +12,13 @@ import MoveSound from '/move.wav';
 import CaptureSound from '/capture.wav';
 
 import { useRecoilState } from 'recoil';
-import { useThemeContext } from '@/hooks/useThemes';   // <-- theme hook
+import { useThemeContext } from '@/hooks/useThemes';
 
-import { isBoardFlippedAtom, movesAtom, userSelectedMoveIndexAtom } from '@repo/store/chessBoard';
+import {
+  isBoardFlippedAtom,
+  movesAtom,
+  userSelectedMoveIndexAtom,
+} from '@repo/store/chessBoard';
 
 // helper for promotions
 export function isPromoting(chess: Chess, from: Square, to: Square) {
@@ -57,11 +61,14 @@ export const ChessBoard = memo(
     chess: Chess;
     setBoard: React.Dispatch<
       React.SetStateAction<
-        ({
-          square: Square;
-          type: PieceSymbol;
-          color: Color;
-        } | null)[][]
+        (
+          | {
+              square: Square;
+              type: PieceSymbol;
+              color: Color;
+            }
+          | null
+        )[][]
       >
     >;
     board: (
@@ -76,10 +83,11 @@ export const ChessBoard = memo(
   }) => {
     console.log('chessboard reloaded');
 
-    const { theme } = useThemeContext();   // <-- get current theme
+    const { theme } = useThemeContext();
 
     const [isFlipped, setIsFlipped] = useRecoilState(isBoardFlippedAtom);
-    const [userSelectedMoveIndex, setUserSelectedMoveIndex] = useRecoilState(userSelectedMoveIndexAtom);
+    const [userSelectedMoveIndex, setUserSelectedMoveIndex] =
+      useRecoilState(userSelectedMoveIndexAtom);
     const [moves, setMoves] = useRecoilState(movesAtom);
     const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
     const [rightClickedSquares, setRightClickedSquares] = useState<string[]>([]);
@@ -103,11 +111,10 @@ export const ChessBoard = memo(
       }
     };
 
+    // ✅ Flip board whenever myColor changes
     useEffect(() => {
-      if (myColor === 'b') {
-        setIsFlipped(true);
-      }
-    }, [myColor]);
+      setIsFlipped(myColor === 'b');
+    }, [myColor, setIsFlipped]);
 
     const clearCanvas = () => {
       setRightClickedSquares([]);
@@ -208,21 +215,30 @@ export const ChessBoard = memo(
               i = isFlipped ? i + 1 : 8 - i;
               return (
                 <div key={i} className="flex relative">
-                  <NumberNotation isMainBoxColor={isFlipped ? i % 2 !== 0 : i % 2 === 0} label={i.toString()} />
+                  <NumberNotation
+                    isMainBoxColor={isFlipped ? i % 2 !== 0 : i % 2 === 0}
+                    label={i.toString()}
+                  />
                   {(isFlipped ? row.slice().reverse() : row).map((square, j) => {
                     j = isFlipped ? 7 - (j % 8) : j % 8;
 
                     const isMainBoxColor = (i + j) % 2 !== 0;
                     const isPiece: boolean = !!square;
-                    const squareRepresentation = (String.fromCharCode(97 + j) + '' + i) as Square;
+                    const squareRepresentation = (String.fromCharCode(97 + j) +
+                      '' +
+                      i) as Square;
                     const isHighlightedSquare =
                       from === squareRepresentation ||
                       squareRepresentation === lastMove?.from ||
                       squareRepresentation === lastMove?.to;
-                    const isRightClickedSquare = rightClickedSquares.includes(squareRepresentation);
+                    const isRightClickedSquare =
+                      rightClickedSquares.includes(squareRepresentation);
 
                     const piece = square && square.type;
-                    const isKingInCheckSquare = piece === 'k' && square?.color === chess.turn() && chess.inCheck();
+                    const isKingInCheckSquare =
+                      piece === 'k' &&
+                      square?.color === chess.turn() &&
+                      chess.inCheck();
 
                     return (
                       <div
@@ -326,7 +342,7 @@ export const ChessBoard = memo(
                             ? isMainBoxColor
                               ? 'bg-[#BBCB45]'
                               : 'bg-[#F4F687]'
-                            : getBoardSquareClass(theme, isMainBoxColor)   // <-- theme-aware square color
+                            : getBoardSquareClass(theme, isMainBoxColor)
                         }`}
                         onContextMenu={(e) => {
                           e.preventDefault();
@@ -341,10 +357,23 @@ export const ChessBoard = memo(
                         <div className="w-full justify-center flex h-full relative">
                           {square && <ChessSquare square={square} />}
                           {isFlipped
-                            ? i === 8 && <LetterNotation label={labels[j]} isMainBoxColor={j % 2 === 0} />
-                            : i === 1 && <LetterNotation label={labels[j]} isMainBoxColor={j % 2 !== 0} />}
+                            ? i === 8 && (
+                                <LetterNotation
+                                  label={labels[j]}
+                                  isMainBoxColor={j % 2 === 0}
+                                />
+                              )
+                            : i === 1 && (
+                                <LetterNotation
+                                  label={labels[j]}
+                                  isMainBoxColor={j % 2 !== 0}
+                                />
+                              )}
                           {!!from && legalMoves.includes(squareRepresentation) && (
-                            <LegalMoveIndicator isMainBoxColor={isMainBoxColor} isPiece={!!square?.type} />
+                            <LegalMoveIndicator
+                              isMainBoxColor={isMainBoxColor}
+                              isPiece={!!square?.type}
+                            />
                           )}
                         </div>
                       </div>
