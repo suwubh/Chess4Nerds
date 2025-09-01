@@ -100,14 +100,12 @@ Now open http://localhost:5173
 Contributions, issues, and feature requests are welcome!
 Feel free to check the issues page
 
-.
+
 
 🙌 Acknowledgements
 
 chess.js
  – chess logic library.
 
-stockfish.js
- – WebAssembly chess engine.
 
 The open-source community ❤️
