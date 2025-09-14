@@ -202,7 +202,10 @@ Thanks to the open-source community and libraries like `chess.js` for chess rule
 
 ## License
 
-Add a `LICENSE` file to the repository root. If you want a permissive license, consider the MIT License.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 
 ---
 
