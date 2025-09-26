@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  username      String?   @unique
+  name          String?
+  email         String   @unique
+  provider      AuthProvider
+  password      String?
+  rating        Int      @default(1200)
+  gamesAsWhite  Game[]   @relation("GamesAsWhite")
+  gamesAsBlack  Game[]   @relation("GamesAsBlack")
+  createdAt     DateTime @default(now())
+  lastLogin     DateTime?
+  
+  // Add relation to player rating
+  playerRating  PlayerRating?
+  
+  @@index([rating])
+}
+
+model PlayerRating {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  currentRating Int      @default(1200)
+  peakRating    Int      @default(1200)
+  gamesPlayed   Int      @default(0)
+  wins          Int      @default(0)
+  losses        Int      @default(0)
+  draws         Int      @default(0)
+  winStreak     Int      @default(0)
+  longestWinStreak Int   @default(0)
+  updatedAt     DateTime @default(now()) @updatedAt
+  
+  @@index([currentRating])
+}
+
+model Game {
+  id              String     @id @default(uuid())
+  whitePlayerId   String
+  blackPlayerId   String
+  whitePlayer     User       @relation("GamesAsWhite", fields: [whitePlayerId], references: [id])
+  blackPlayer     User       @relation("GamesAsBlack", fields: [blackPlayerId], references: [id])
+  status          GameStatus
+  result          GameResult?
+  timeControl     TimeControl
+  startingFen     String     @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+  currentFen      String?
+  startAt         DateTime   @default(now())
+  endAt           DateTime?
+  moves           Move[]
+  opening         String?
+  event           String?
+  
+  // Add rating tracking fields
+  whiteRatingBefore Int?
+  blackRatingBefore Int?
+  whiteRatingAfter  Int?
+  blackRatingAfter  Int?
+  totalMoves        Int      @default(0)
+  gameDurationSeconds Int?
+  
+  @@index([status, result])
+  @@index([whitePlayerId])
+  @@index([blackPlayerId])
+  @@index([startAt])
+}
+
+model Move {
+  id          String   @id @default(uuid())
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id])
+  moveNumber  Int
+  from        String
+  to          String
+  comments    String?
+  before      String
+  after       String
+  timeTaken   Int?     @default(0)
+  createdAt   DateTime @default(now())
+  san         String?   
+  @@index([gameId])
+}
+
+enum GameStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+  TIME_UP
+  PLAYER_EXIT
+}
+
+enum GameResult {
+  WHITE_WINS
+  BLACK_WINS
+  DRAW
+}
+
+enum TimeControl {
+  CLASSICAL
+  RAPID
+  BLITZ
+  BULLET
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  GITHUB
+  GUEST
+}

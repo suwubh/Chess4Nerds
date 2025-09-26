@@ -1,0 +1,168 @@
+.game-history {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.game-history h3 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.game-list {
+  space-y: 12px;
+}
+
+.game-row {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.game-row:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.game-row.outcome-win {
+  border-left: 4px solid #27ae60;
+}
+
+.game-row.outcome-loss {
+  border-left: 4px solid #e74c3c;
+}
+
+.game-row.outcome-draw {
+  border-left: 4px solid #f39c12;
+}
+
+.game-players {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.playing-white {
+  color: #2c3e50;
+}
+
+.playing-black {
+  color: #34495e;
+}
+
+.player-color {
+  font-size: 18px;
+}
+
+.game-outcome {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.result {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.result.win {
+  background: #d4edda;
+  color: #155724;
+}
+
+.result.loss {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.result.draw {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.rating-change {
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.rating-change.positive {
+  color: #27ae60;
+  background: #d5f4e6;
+}
+
+.rating-change.negative {
+  color: #e74c3c;
+  background: #fdeaea;
+}
+
+.new-rating {
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+.game-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #7f8c8d;
+  flex-wrap: wrap;
+}
+
+.opening {
+  font-weight: 500;
+}
+
+.time-control {
+  text-transform: uppercase;
+}
+
+.load-more {
+  display: block;
+  width: 100%;
+  max-width: 200px;
+  margin: 20px auto;
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.load-more:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.load-more:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .game-row {
+    padding: 12px;
+  }
+  
+  .game-players {
+    font-size: 14px;
+  }
+  
+  .game-meta {
+    gap: 12px;
+    font-size: 11px;
+  }
+}
