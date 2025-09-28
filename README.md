@@ -50,7 +50,6 @@ chess4nerds/
 - **Tailwind CSS** for styling with custom chess themes
 - **Radix UI** components (Dialog, Accordion, Alert Dialog, Icons)
 - **Chess.js** for game logic and validation
-- **Zustand & Recoil** for state management
 - **React Router** for navigation
 
 ### Backend
@@ -71,7 +70,6 @@ chess4nerds/
 - **PostgreSQL** with Prisma ORM
 - **Redis** for caching and real-time data
 - **Turborepo** for monorepo management
-- **ESLint** for code quality
 - **TypeScript** throughout the stack
 
 ---
@@ -149,8 +147,6 @@ chess4nerds/
 |---------|-------------|
 | `npm run dev` | Start all applications in development mode |
 | `npm run build` | Build all applications for production |
-| `npm run lint` | Run ESLint across all packages |
-| `npm run lint:fix` | Fix ESLint issues automatically |
 | `npm run db:generate` | Generate Prisma client |
 | `npm run db:push` | Push schema changes to database |
 
@@ -159,12 +155,10 @@ chess4nerds/
 **Backend:**
 - `npm run dev` - Build and start backend server
 - `npm run build` - Build with ESBuild
-- `npm run lint` - ESLint check
 
 **Frontend:**
 - `npm run dev` - Start Vite dev server
 - `npm run build` - Build for production
-- `npm run lint` - ESLint check
 
 **WebSocket:**
 - `npm run dev` - Build and start WebSocket server
@@ -188,7 +182,6 @@ chess4nerds/
 
 - **Turborepo** manages the monorepo with optimized builds
 - **TypeScript** across all packages for type safety
-- **ESLint** configured for code quality
 - **Prisma** handles database operations and migrations
 - **Redis** for caching leaderboard data and session management
 - **ESBuild** for fast backend compilation
