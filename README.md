@@ -220,7 +220,7 @@ Contributions welcome! Please:
 
 1. Fork the repository
 2. Create a feature branch
-3. Follow TypeScript and ESLint conventions
+3. Follow general development conventions
 4. Test your changes
 5. Submit a pull request
 
