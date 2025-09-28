@@ -35,7 +35,6 @@ export class GameHistoryService {
             where: { id: gameData.whitePlayerId },
             data: { rating: gameData.whiteRatingAfter }
         });
-
         await db.user.update({
             where: { id: gameData.blackPlayerId },
             data: { rating: gameData.blackRatingAfter }
@@ -64,7 +63,7 @@ export class GameHistoryService {
         });
 
         if (existingRating) {
-            // Update existing record - handle null checks properly
+            // Update existing record
             await db.playerRating.update({
                 where: { userId: playerId },
                 data: {
@@ -75,7 +74,7 @@ export class GameHistoryService {
                     losses: outcome === 'loss' ? { increment: 1 } : undefined,
                     draws: outcome === 'draw' ? { increment: 1 } : undefined,
                     winStreak: outcome === 'win' ? { increment: 1 } : 0,
-                    longestWinStreak: outcome === 'win' 
+                    longestWinStreak: outcome === 'win'
                         ? Math.max(existingRating.longestWinStreak ?? 0, (existingRating.winStreak ?? 0) + 1)
                         : existingRating.longestWinStreak
                 }
@@ -100,7 +99,7 @@ export class GameHistoryService {
 
     async getPlayerGameHistory(playerId: string, page: number = 1, limit: number = 20) {
         const offset = (page - 1) * limit;
-        
+
         const games = await db.game.findMany({
             where: {
                 OR: [
@@ -124,14 +123,10 @@ export class GameHistoryService {
 
         return games.map(game => {
             const isWhite = game.whitePlayerId === playerId;
-            
-            // Handle null rating values safely
             const playerRatingBefore = isWhite ? game.whiteRatingBefore : game.blackRatingBefore;
             const playerRatingAfter = isWhite ? game.whiteRatingAfter : game.blackRatingAfter;
-            
-            // Calculate rating change only if both values exist
-            const ratingChange = (playerRatingAfter !== null && playerRatingBefore !== null) 
-                ? playerRatingAfter - playerRatingBefore 
+            const ratingChange = (playerRatingAfter !== null && playerRatingBefore !== null)
+                ? playerRatingAfter - playerRatingBefore
                 : null;
 
             return {

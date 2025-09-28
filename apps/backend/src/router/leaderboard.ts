@@ -32,28 +32,33 @@ router.get('/', async (req, res) => {
         const leaderboardWithRank = leaderboard.map((player, index) => ({
             rank: index + 1,
             id: player.user.id,
-            username: player.user.username || player.user.name,
+            name: player.user.username || player.user.name || 'Unknown Player',
+            username: player.user.username || player.user.name || 'Unknown Player',
+            rating: player.currentRating,
             currentRating: player.currentRating,
             peakRating: player.peakRating,
             gamesPlayed: player.gamesPlayed,
+            totalGames: player.gamesPlayed, // Add for frontend compatibility
             wins: player.wins,
             losses: player.losses,
             draws: player.draws,
             winStreak: player.winStreak,
             longestWinStreak: player.longestWinStreak,
-            winRate: player.gamesPlayed > 0 ? ((player.wins / player.gamesPlayed) * 100).toFixed(1) : '0.0'
+            // FIXED: Return as number, not string
+            winRate: player.gamesPlayed > 0 ? ((player.wins / player.gamesPlayed) * 100) : 0
         }));
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             data: leaderboardWithRank,
-            count: leaderboardWithRank.length 
+            count: leaderboardWithRank.length
         });
     } catch (error) {
         console.error('Leaderboard error:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Failed to fetch leaderboard' 
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch leaderboard',
+            message: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
@@ -78,9 +83,9 @@ router.get('/user/:userId', async (req, res) => {
         });
 
         if (!userRating) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'User rating not found' 
+            return res.status(404).json({
+                success: false,
+                error: 'User rating not found'
             });
         }
 
@@ -99,7 +104,8 @@ router.get('/user/:userId', async (req, res) => {
         const userData = {
             rank,
             id: userRating.user.id,
-            username: userRating.user.username || userRating.user.name,
+            name: userRating.user.username || userRating.user.name || 'Unknown Player',
+            username: userRating.user.username || userRating.user.name || 'Unknown Player',
             currentRating: userRating.currentRating,
             peakRating: userRating.peakRating,
             gamesPlayed: userRating.gamesPlayed,
@@ -108,18 +114,19 @@ router.get('/user/:userId', async (req, res) => {
             draws: userRating.draws,
             winStreak: userRating.winStreak,
             longestWinStreak: userRating.longestWinStreak,
-            winRate: userRating.gamesPlayed > 0 ? ((userRating.wins / userRating.gamesPlayed) * 100).toFixed(1) : '0.0'
+            // FIXED: Return as number, not string
+            winRate: userRating.gamesPlayed > 0 ? ((userRating.wins / userRating.gamesPlayed) * 100) : 0
         };
 
-        res.json({ 
-            success: true, 
-            data: userData 
+        res.json({
+            success: true,
+            data: userData
         });
     } catch (error) {
         console.error('User rank error:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Failed to fetch user rank' 
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch user rank'
         });
     }
 });
