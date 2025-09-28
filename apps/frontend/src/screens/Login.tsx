@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
 import { useRecoilState } from 'recoil';
-import { userAtom } from '@repo/store/userAtom';
+import { userAtom } from '../../../../packages/store/src/atoms/user';
 import { useThemeContext } from '@/hooks/useThemes'; // Adjust import according to your project structure
 
 const BACKEND_URL =

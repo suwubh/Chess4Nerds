@@ -7,7 +7,7 @@ import { COOKIE_MAX_AGE } from '../consts';
 const router = Router();
 
 const CLIENT_URL =
-  process.env.AUTH_REDIRECT_URL ?? 'http://localhost:5173/game/random';
+  process.env.AUTH_REDIRECT_URL ?? 'http://localhost:5173';
 const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key';
 
 interface userJwtClaims {
@@ -23,7 +23,6 @@ interface UserDetails {
   isGuest?: boolean;
 }
 
-// this route is to be hit when the user wants to login as a guest
 router.post('/guest', async (req: Request, res: Response) => {
   const bodyData = req.body;
   let guestUUID = 'guest-' + uuidv4();
@@ -55,8 +54,6 @@ router.get('/refresh', async (req: Request, res: Response) => {
   if (req.user) {
     const user = req.user as UserDetails;
 
-    // Token is issued so it can be shared b/w HTTP and ws server
-    // Todo: Make this temporary and add refresh logic here
 
     const userDb = await db.user.findFirst({
       where: {

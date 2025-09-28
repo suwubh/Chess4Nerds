@@ -83,7 +83,7 @@ export function initPassport() {
             Authorization: `token ${accessToken}`,
           },
         });
-        const data: GithubEmailRes[] = await res.json();
+        const data = await res.json() as GithubEmailRes[];
         const primaryEmail = data.find((item) => item.primary === true);
 
         const user = await db.user.upsert({
