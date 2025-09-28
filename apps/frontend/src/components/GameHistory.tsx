@@ -6,16 +6,16 @@ interface GameHistoryProps {
 
 interface Game {
   id: string;
-  opponent: {
-    id: string;
-    name: string;
-  };
-  result: 'win' | 'loss' | 'draw';
-  color: 'white' | 'black';
-  moves: number;
-  duration: number; // in seconds
-  createdAt: string;
-  endReason?: 'checkmate' | 'resignation' | 'timeout' | 'draw' | 'stalemate';
+  whitePlayer: { username: string };
+  blackPlayer: { username: string };
+  result: string;
+  outcome: 'win' | 'loss' | 'draw';
+  ratingChange: number | null;
+  playerRatingAfter: number;
+  startAt: string;
+  timeControl: string;
+  opening: string;
+  playerColor: string;
 }
 
 const GameHistory: React.FC<GameHistoryProps> = ({ userId }) => {
@@ -35,7 +35,8 @@ const GameHistory: React.FC<GameHistoryProps> = ({ userId }) => {
         setError(null);
         
         const BACKEND_URL = import.meta.env.VITE_APP_BACKEND_URL || 'http://localhost:3000';
-        const response = await fetch(`${BACKEND_URL}/api/users/${userId}/games?limit=10`, {
+        // FIXED: Use correct endpoint path
+        const response = await fetch(`${BACKEND_URL}/api/games/history/${userId}?limit=10`, {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -44,8 +45,13 @@ const GameHistory: React.FC<GameHistoryProps> = ({ userId }) => {
         });
         
         if (response.ok) {
-          const data = await response.json();
-          setGames(Array.isArray(data) ? data : data.games || []);
+          const result = await response.json();
+          // FIXED: Extract games from success wrapper
+          if (result.success && result.data) {
+            setGames(result.data.games || []);
+          } else {
+            setGames([]);
+          }
         } else if (response.status === 404) {
           setGames([]);
         } else {
@@ -63,19 +69,13 @@ const GameHistory: React.FC<GameHistoryProps> = ({ userId }) => {
     fetchGameHistory();
   }, [userId]);
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const getResultIcon = (result: string) => {
-    switch (result) {
+  const getResultIcon = (outcome: string) => {
+    switch (outcome) {
       case 'win': return '🏆';
       case 'loss': return '😞';
       case 'draw': return '🤝';
@@ -83,8 +83,8 @@ const GameHistory: React.FC<GameHistoryProps> = ({ userId }) => {
     }
   };
 
-  const getResultColor = (result: string) => {
-    switch (result) {
+  const getResultColor = (outcome: string) => {
+    switch (outcome) {
       case 'win': return 'text-green-600 bg-green-50 dark:bg-green-900/20';
       case 'loss': return 'text-red-600 bg-red-50 dark:bg-red-900/20';
       case 'draw': return 'text-gray-600 bg-gray-50 dark:bg-gray-700';
@@ -139,9 +139,10 @@ const GameHistory: React.FC<GameHistoryProps> = ({ userId }) => {
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="font-medium text-gray-800 dark:text-white">
-          Recent Games ({games.length})
+        <h3 className="font-medium text-white">
+         Recent Games ({games.length})
         </h3>
+
         {games.length >= 10 && (
           <a 
             href={`/history/${userId}`} 
@@ -160,36 +161,40 @@ const GameHistory: React.FC<GameHistoryProps> = ({ userId }) => {
           >
             {/* Game Result & Opponent */}
             <div className="flex items-center space-x-3 flex-1 min-w-0">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${getResultColor(game.result)}`}>
-                {getResultIcon(game.result)}
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${getResultColor(game.outcome)}`}>
+                {getResultIcon(game.outcome)}
               </div>
               
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-gray-900 dark:text-white truncate">
-                    vs {game.opponent.name}
+                    {game.whitePlayer.username} vs {game.blackPlayer.username}
                   </span>
                   <span className="text-xs text-gray-500">
-                    ({game.color === 'white' ? '⚪' : '⚫'})
+                    ({game.playerColor === 'white' ? '⚪' : '⚫'})
                   </span>
                 </div>
                 <div className="text-xs text-gray-500 flex items-center gap-2">
-                  <span>{game.moves} moves</span>
-                  <span>•</span>
-                  <span>{formatDuration(game.duration)}</span>
-                  {game.endReason && (
+                  <span className={`result ${game.outcome}`}>
+                    {game.outcome.toUpperCase()}
+                  </span>
+                  {game.ratingChange !== null && (
                     <>
                       <span>•</span>
-                      <span className="capitalize">{game.endReason}</span>
+                      <span className={`rating-change ${game.ratingChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {game.ratingChange >= 0 ? '+' : ''}{game.ratingChange}
+                      </span>
                     </>
                   )}
+                  <span>•</span>
+                  <span>{game.opening}</span>
                 </div>
               </div>
             </div>
 
             {/* Date */}
             <div className="text-xs text-gray-500 text-right">
-              {formatDate(game.createdAt)}
+              {formatDate(game.startAt)}
             </div>
           </div>
         ))}
