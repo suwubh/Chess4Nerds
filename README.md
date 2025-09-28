@@ -50,6 +50,7 @@ chess4nerds/
 - **Tailwind CSS** for styling with custom chess themes
 - **Radix UI** components (Dialog, Accordion, Alert Dialog, Icons)
 - **Chess.js** for game logic and validation
+- **Recoil** for state management
 - **React Router** for navigation
 
 ### Backend
