@@ -10,15 +10,17 @@
 
 ## 🚀 Overview
 
-Chess4Nerds is a comprehensive chess platform featuring real-time multiplayer gameplay, AI opponents, and modern web technologies. Built as a Turborepo monorepo with TypeScript throughout.
+Chess4Nerds is a comprehensive chess platform featuring real-time multiplayer gameplay, competitive leaderboards, match history tracking, and modern web technologies. Built as a Turborepo monorepo with TypeScript throughout.
 
 ### ✨ Key Features
 
 - 🎮 **Real-time Multiplayer** - Play chess instantly via WebSocket connections
+- 🏆 **Competitive Leaderboards** - Real-time ranking system with player statistics
+- 📊 **Match History** - Comprehensive game tracking and analysis
 - 🤖 **AI Chess Engine** - Challenge computer opponents using chess.js
-- 📊 **User Authentication** - Secure login with Passport.js (Google & GitHub OAuth)
-- 💬 **Live Gaming** - Real-time move updates and game state synchronization
-- 📱 **Cross-platform** - Web application with planned mobile support
+- 🔐 **OAuth Authentication** - Secure login with Google & GitHub integration
+- ⚡ **Redis Caching** - Fast data access and session management
+- 📱 **Cross-platform** - Web application with React Native mobile support
 - 🎨 **Modern UI** - Built with React, Tailwind CSS, and Radix UI components
 
 ---
@@ -33,7 +35,7 @@ chess4nerds/
 │   ├── backend/         # Express.js API server with Passport auth
 │   ├── frontend/        # React + Vite web application
 │   ├── ws/              # WebSocket server for real-time gaming
-│   └── native/          # React Native mobile app (planned)
+│   └── native/          # React Native mobile app
 ├── packages/
 │   ├── db/              # Prisma database schema and client
 │   ├── store/           # Shared state management
@@ -46,7 +48,7 @@ chess4nerds/
 ### Frontend
 - **React 18** with TypeScript and Vite
 - **Tailwind CSS** for styling with custom chess themes
-- **Radix UI** components (Dialog, Accordion, Alert Dialog)
+- **Radix UI** components (Dialog, Accordion, Alert Dialog, Icons)
 - **Chess.js** for game logic and validation
 - **Zustand & Recoil** for state management
 - **React Router** for navigation
@@ -54,6 +56,7 @@ chess4nerds/
 ### Backend
 - **Node.js** with Express.js and TypeScript
 - **Prisma ORM** with PostgreSQL database
+- **Redis** for caching and session storage
 - **Passport.js** authentication (Google & GitHub OAuth)
 - **JWT** tokens with cookie sessions
 - **ESBuild** for fast compilation
@@ -66,6 +69,7 @@ chess4nerds/
 
 ### Database & Tools
 - **PostgreSQL** with Prisma ORM
+- **Redis** for caching and real-time data
 - **Turborepo** for monorepo management
 - **ESLint** for code quality
 - **TypeScript** throughout the stack
@@ -77,8 +81,9 @@ chess4nerds/
 ### Prerequisites
 
 - **Node.js** (v18+)
-- **Yarn** (v1.22+)
+- **npm**
 - **PostgreSQL** database
+- **Redis** server
 
 ### Installation
 
@@ -90,7 +95,7 @@ chess4nerds/
 
 2. **Install dependencies**
    ```bash
-   yarn install
+   npm install
    ```
 
 3. **Set up environment variables**
@@ -98,6 +103,7 @@ chess4nerds/
    **`apps/backend/.env`**
    ```env
    DATABASE_URL="postgresql://username:password@localhost:5432/chess4nerds"
+   REDIS_URL="redis://localhost:6379"
    GOOGLE_CLIENT_ID="your-google-oauth-client-id"
    GOOGLE_CLIENT_SECRET="your-google-oauth-secret"
    GITHUB_CLIENT_ID="your-github-oauth-client-id"
@@ -108,7 +114,7 @@ chess4nerds/
    PORT=3001
    ```
    
-   **`apps/frontend/.env`** (check `.env.example`)
+   **`apps/frontend/.env`**
    ```env
    VITE_API_URL=http://localhost:3001
    VITE_WS_URL=ws://localhost:3002
@@ -116,13 +122,18 @@ chess4nerds/
 
 4. **Set up the database**
    ```bash
-   yarn db:generate
-   yarn db:push
+   npm run db:generate
+   npm run db:push
    ```
 
-5. **Start development servers**
+5. **Start Redis server**
    ```bash
-   yarn dev
+   redis-server
+   ```
+
+6. **Start development servers**
+   ```bash
+   npm run dev
    ```
    
    This starts all applications:
@@ -132,16 +143,16 @@ chess4nerds/
 
 ---
 
-## 📝 Available Scripts
+## 📋 Available Scripts
 
 | Command | Description |
 |---------|-------------|
-| `yarn dev` | Start all applications in development mode |
-| `yarn build` | Build all applications for production |
-| `yarn lint` | Run ESLint across all packages |
-| `yarn lint:fix` | Fix ESLint issues automatically |
-| `yarn db:generate` | Generate Prisma client |
-| `yarn db:push` | Push schema changes to database |
+| `npm run dev` | Start all applications in development mode |
+| `npm run build` | Build all applications for production |
+| `npm run lint` | Run ESLint across all packages |
+| `npm run lint:fix` | Fix ESLint issues automatically |
+| `npm run db:generate` | Generate Prisma client |
+| `npm run db:push` | Push schema changes to database |
 
 ### Individual App Scripts
 
@@ -163,9 +174,11 @@ chess4nerds/
 ## 🎮 How to Play
 
 1. **Sign Up** - Create account or use Google/GitHub OAuth
-2. **Find Opponents** - Connect with other players
-3. **Play Chess** - Real-time chess with instant move updates
-4. **Challenge AI** - Practice against computer opponents
+2. **View Leaderboards** - Check current player rankings
+3. **Find Opponents** - Connect with other players for matches
+4. **Play Chess** - Real-time chess with instant move updates
+5. **Challenge AI** - Practice against computer opponents
+6. **Track Progress** - View your match history and statistics
 
 ---
 
@@ -177,6 +190,7 @@ chess4nerds/
 - **TypeScript** across all packages for type safety
 - **ESLint** configured for code quality
 - **Prisma** handles database operations and migrations
+- **Redis** for caching leaderboard data and session management
 - **ESBuild** for fast backend compilation
 
 ### Key Dependencies
@@ -187,11 +201,17 @@ chess4nerds/
 - `passport` - Authentication middleware
 - `prisma` - Database toolkit
 - `ws` - WebSocket implementation
+- `redis` - In-memory data structure store
 
 ---
 
 ## 🗺️ Roadmap
 
+- [x] Real-time multiplayer chess
+- [x] User authentication with OAuth
+- [x] Leaderboard system
+- [x] Match history tracking
+- [x] Redis caching implementation
 - [ ] Enhanced AI difficulty levels
 - [ ] Tournament system
 - [ ] Game replay and analysis
@@ -230,5 +250,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 <div align="center">
   
 **Built with ❤️ for chess enthusiasts**
+
+*"Every chess master was once a beginner."* - Irving Chernev
 
 </div>
