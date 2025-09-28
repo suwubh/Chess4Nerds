@@ -1,6 +1,5 @@
 import { atom, selector } from 'recoil';
 
-// How do you put this in .env? @hkirat
 export const BACKEND_URL = 'http://localhost:3000';
 export interface User {
   isGuest: any;
