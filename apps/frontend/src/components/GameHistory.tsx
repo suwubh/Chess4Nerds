@@ -127,7 +127,7 @@ const GameHistory: React.FC<GameHistoryProps> = ({ userId }) => {
         </div>
         <a
           href="/"
-          className="inline-flex items-center px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+          className="inline-flex items-center px-4 py-2 bg-amber-100 text-gray-800 rounded-lg hover:bg-amber-200 transition-colors"
         >
           <span className="mr-2">🎯</span>
           Play Your First Game

@@ -322,9 +322,9 @@ function PlayerProfilePage() {
               <a href="/settings" className="block w-full text-left text-textSecondary hover:text-textMain hover:bg-bgMain font-medium px-3 py-3 rounded transition-colors border-2 border-transparent hover:border-border shadow-sm hover:shadow-md">
                 🎨 Themes & Settings
               </a>
-              <button className="block w-full text-left text-textSecondary hover:text-textMain hover:bg-bgMain font-medium px-3 py-3 rounded transition-colors border-2 border-transparent hover:border-border shadow-sm hover:shadow-md">
+              {/* <button className="block w-full text-left text-textSecondary hover:text-textMain hover:bg-bgMain font-medium px-3 py-3 rounded transition-colors border-2 border-transparent hover:border-border shadow-sm hover:shadow-md">
                 🔔 Notifications
-              </button>
+              </button> */}
               <button className="block w-full text-left text-textSecondary hover:text-textMain hover:bg-bgMain font-medium px-3 py-3 rounded transition-colors border-2 border-transparent hover:border-border shadow-sm hover:shadow-md">
                 📱 Mobile App(Coming soon...)
               </button>

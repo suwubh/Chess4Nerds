@@ -33,6 +33,7 @@ export enum Result {
   BLACK_WINS = 'BLACK_WINS',
   DRAW = 'DRAW',
 }
+
 export interface GameResult {
   result: Result;
   by: string;
@@ -130,7 +131,7 @@ export const Game = () => {
           setPlayer1TimeConsumed(player1TimeConsumed);
           setPlayer2TimeConsumed(player2TimeConsumed);
           if (userSelectedMoveIndexRef.current !== null) {
-            setMoves((moves) => [...moves, move]);
+            setMoves((moves: any) => [...moves, move]);
             return;
           }
           try {
@@ -143,7 +144,7 @@ export const Game = () => {
             } else {
               chess.move({ from: move.from, to: move.to });
             }
-            setMoves((moves) => [...moves, move]);
+            setMoves((moves: any) => [...moves, move]);
             moveAudio.play();
           } catch (error) {
             console.log('Error', error);
@@ -202,19 +203,34 @@ export const Game = () => {
           setPlayer2TimeConsumed(message.payload.player2Time);
           break;
 
-        // New: incoming chat
+        // FIXED: Incoming chat with deduplication
         case CHAT_MESSAGE:
           if (!message.payload) break;
           if (!gameId || message.payload.gameId !== gameId) break;
-          setChatMessages((prev) => [
-            ...prev,
-            {
-              fromUserId: message.payload.fromUserId,
-              text: String(message.payload.text || ''),
-              ts: Number(message.payload.ts || Date.now()),
-              gameId: message.payload.gameId,
-            },
-          ]);
+          
+          const newMessage: ChatMsg = {
+            fromUserId: message.payload.fromUserId,
+            text: String(message.payload.text || ''),
+            ts: Number(message.payload.ts || Date.now()),
+            gameId: message.payload.gameId,
+          };
+          
+          // Add deduplication logic to prevent duplicate messages
+          setChatMessages((prev) => {
+            // Check if message already exists (by timestamp + text + fromUserId)
+            const exists = prev.some(m => 
+              m.ts === newMessage.ts && 
+              m.text === newMessage.text && 
+              m.fromUserId === newMessage.fromUserId
+            );
+            
+            if (exists) {
+              console.log('Duplicate chat message detected, skipping:', newMessage);
+              return prev;
+            }
+            
+            return [...prev, newMessage];
+          });
           break;
 
         default:
@@ -282,6 +298,7 @@ export const Game = () => {
     navigate('/');
   };
 
+  // FIXED: Single sendChat function for the main socket
   function sendChat() {
     const text = chatInput.trim();
     if (!text || !socket || !gameId) return;
@@ -375,7 +392,7 @@ export const Game = () => {
                   ) : (
                     gameId === 'random' && (
                       <Button
-                     className="h-20 w-32 px-4 py-2 text-2xl rounded-md flex-shrink-0 flex items-center justify-center"
+                        className="h-20 w-32 px-4 py-2 text-2xl rounded-md flex-shrink-0 flex items-center justify-center"
                         onClick={() => {
                           socket.send(JSON.stringify({ type: INIT_GAME }));
                         }}
@@ -395,14 +412,14 @@ export const Game = () => {
                     </div>
                   </div>
 
-                  {/* Chat panel (below) */}
+                  {/* FIXED: Chat panel using single WebSocket connection */}
                   <div className="rounded-md bg-zinc-800/50 border border-zinc-700 p-3 flex-1 flex flex-col">
                     <div className="text-white font-semibold mb-2">Chat</div>
                     <div className="flex-1 overflow-y-auto space-y-2 pr-1">
                       {chatMessages.map((m, idx) => {
                         const mine = m.fromUserId === user.id;
                         return (
-                          <div key={idx} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+                          <div key={`${m.ts}-${m.fromUserId}-${idx}`} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                             <div
                               className={`max-w-[80%] px-3 py-2 rounded-lg text-sm ${
                                 mine ? 'bg-blue-600 text-white' : 'bg-zinc-700 text-white'
