@@ -1,218 +1,250 @@
-# Chess4Nerds
+# ♟️ Chess4Nerds
 
-♟️ **Chess4Nerds** — a full-stack, multiplayer chess application built for nerds who love clean code and serious gameplay. Play realtime multiplayer games, challenge the built-in engine, and track progress with leaderboards and match history.
+**A modern, full-stack multiplayer chess platform built with TypeScript**
 
----
-
-## Table of Contents
-
-* [About](#about)
-* [Demo](#demo)
-* [Tech Stack](#tech-stack)
-* [Features](#features)
-* [Getting Started](#getting-started)
-
-  * [Prerequisites](#prerequisites)
-  * [Environment variables](#environment-variables)
-  * [Install & Run](#install--run)
-* [Development](#development)
-* [Roadmap](#roadmap)
-* [Contributing](#contributing)
-* [Acknowledgements](#acknowledgements)
-* [License](#license)
-* [Contact](#contact)
+[![Made with TypeScript](https://img.shields.io/badge/Made%20with-TypeScript-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Powered by Turbo](https://img.shields.io/badge/Built%20with-Turborepo-EF4444?style=flat-square&logo=turborepo)](https://turbo.build/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
 ---
 
-## About
+## 🚀 Overview
 
-Chess4Nerds is a modern, TypeScript-based chess platform featuring:
+Chess4Nerds is a comprehensive chess platform featuring real-time multiplayer gameplay, competitive leaderboards, match history tracking, and modern web technologies. Built as a Turborepo monorepo with TypeScript throughout.
 
-* Real-time multiplayer via WebSockets
-* Play vs Computer using a chess engine
-* Matchmaking and leaderboards with an Elo-style rating system
-* In-game chat and match history
-* Redis for fast state and matchmaking, Postgres for persistent storage
+### ✨ Key Features
 
-This repo uses a monorepo layout with separate apps for server, WebSocket service, and frontend.
-
----
-
-## Demo
-
-Run locally (instructions below) or deploy to your preferred hosting provider.
+- 🎮 **Real-time Multiplayer** - Play chess instantly via WebSocket connections
+- 🏆 **Competitive Leaderboards** - Real-time ranking system with player statistics
+- 📊 **Match History** - Comprehensive game tracking and analysis
+- 🤖 **AI Chess Engine** - Challenge computer opponents using chess.js
+- 🔐 **OAuth Authentication** - Secure login with Google & GitHub integration
+- ⚡ **Redis Caching** - Fast data access and session management
+- 📱 **Cross-platform** - Web application with React Native mobile support
+- 🎨 **Modern UI** - Built with React, Tailwind CSS, and Radix UI components
 
 ---
 
-## Tech Stack
+## 🏗️ Architecture
 
-* **Frontend:** React + TypeScript (Vite)
-* **Backend:** Node.js + TypeScript (Express or similar)
-* **Realtime:** WebSocket server (separate `ws` service)
-* **Database:** PostgreSQL
-* **Cache / State:** Redis
-* **Language:** TypeScript
+This project uses **Turborepo** for monorepo management:
+
+```
+chess4nerds/
+├── apps/
+│   ├── backend/         # Express.js API server with Passport auth
+│   ├── frontend/        # React + Vite web application
+│   ├── ws/              # WebSocket server for real-time gaming
+│   └── native/          # React Native mobile app
+├── packages/
+│   ├── db/              # Prisma database schema and client
+│   ├── store/           # Shared state management
+│   └── ui/              # Reusable UI components
+└── Configuration files
+```
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **React 18** with TypeScript and Vite
+- **Tailwind CSS** for styling with custom chess themes
+- **Radix UI** components (Dialog, Accordion, Alert Dialog, Icons)
+- **Chess.js** for game logic and validation
+- **Recoil** for state management
+- **React Router** for navigation
+
+### Backend
+- **Node.js** with Express.js and TypeScript
+- **Prisma ORM** with PostgreSQL database
+- **Redis** for caching and session storage
+- **Passport.js** authentication (Google & GitHub OAuth)
+- **JWT** tokens with cookie sessions
+- **ESBuild** for fast compilation
+
+### WebSocket Server
+- **WebSocket (ws)** for real-time communication
+- **Chess.js** for server-side game validation
+- **JWT** authentication
+- **ESBuild** compilation
+
+### Database & Tools
+- **PostgreSQL** with Prisma ORM
+- **Redis** for caching and real-time data
+- **Turborepo** for monorepo management
+- **TypeScript** throughout the stack
 
 ---
 
-## Features
-
-* User authentication (signup / login)
-* Matchmaking: create/join games
-* Real-time gameplay with instant move updates (WebSockets)
-* Elo-style rating adjustments after matches
-* Play vs Computer (single-player mode)
-* In-game chat between opponents
-* Leaderboard and match history
-* Custom board themes
-
----
-
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
-* Node.js (v18+ recommended)
-* npm or yarn
-* PostgreSQL
-* Redis
+- **Node.js** (v18+)
+- **npm**
+- **PostgreSQL** database
+- **Redis** server
 
-### Environment variables
+### Installation
 
-Create `.env` files in the `backend/`, `ws/`, and `frontend/` folders. Example values below.
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/suwubh/Chess4Nerds.git
+   cd Chess4Nerds
+   ```
 
-**backend/.env**
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-```env
-PORT=5000
-DATABASE_URL=postgresql://user:password@localhost:5432/chess4nerds
-REDIS_URL=redis://localhost:6379
-JWT_SECRET=your_jwt_secret
-NODE_ENV=development
-```
+3. **Set up environment variables**
+   
+   **`apps/backend/.env`**
+   ```env
+   DATABASE_URL="postgresql://username:password@localhost:5432/chess4nerds"
+   REDIS_URL="redis://localhost:6379"
+   GOOGLE_CLIENT_ID="your-google-oauth-client-id"
+   GOOGLE_CLIENT_SECRET="your-google-oauth-secret"
+   GITHUB_CLIENT_ID="your-github-oauth-client-id"
+   GITHUB_CLIENT_SECRET="your-github-oauth-secret"
+   JWT_SECRET="your-jwt-secret-key"
+   COOKIE_SECRET="your-cookie-secret"
+   AUTH_REDIRECT_URL="http://localhost:3000"
+   PORT=3001
+   ```
+   
+   **`apps/frontend/.env`**
+   ```env
+   VITE_API_URL=http://localhost:3001
+   VITE_WS_URL=ws://localhost:3002
+   ```
 
-**ws/.env**
+4. **Set up the database**
+   ```bash
+   npm run db:generate
+   npm run db:push
+   ```
 
-```env
-WS_PORT=5001
-REDIS_URL=redis://localhost:6379
-JWT_SECRET=your_jwt_secret
-```
+5. **Start Redis server**
+   ```bash
+   redis-server
+   ```
 
-**frontend/.env** (for Vite)
-
-```env
-VITE_API_URL=http://localhost:5000
-VITE_WS_URL=ws://localhost:5001
-```
-
-Adjust variable names to match the code if different.
-
-### Install & Run
-
-Clone the repository and install dependencies.
-
-```bash
-git clone https://github.com/suwubh/Chess4Nerds.git
-cd Chess4Nerds
-
-# (Optional) Install dependencies from the root if you use a monorepo tool
-# npm install
-# or
-# pnpm install
-# or
-# yarn install
-```
-
-Install per-package (recommended):
-
-```bash
-# Server
-cd backend
-npm install
-
-# WebSocket server
-cd ../ws
-npm install
-
-# Frontend
-cd ../frontend
-npm install
-```
-
-Start each service (run these in separate terminals or use a process manager):
-
-```bash
-# Start backend
-cd backend
-npm run dev
-
-# Start WebSocket server
-cd ../ws
-npm run dev
-
-# Start frontend (Vite)
-cd ../frontend
-npm run dev
-```
-
-Open the frontend (typically `http://localhost:5173` for Vite) to play.
+6. **Start development servers**
+   ```bash
+   npm run dev
+   ```
+   
+   This starts all applications:
+   - Frontend: `http://localhost:3000` (Vite dev server)
+   - Backend API: `http://localhost:3001`
+   - WebSocket: `ws://localhost:3002`
 
 ---
 
-## Development
+## 📋 Available Scripts
 
-* Follow conventional commits and branch naming (e.g. `feature/`, `fix/`, `chore/`).
-* If you add new environment variables, document them in this README and create a `.env.example`.
-* Add unit and integration tests as you change backend logic (Jest / Supertest recommended).
-* Use ESLint + Prettier to keep code style consistent across packages.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start all applications in development mode |
+| `npm run build` | Build all applications for production |
+| `npm run db:generate` | Generate Prisma client |
+| `npm run db:push` | Push schema changes to database |
 
----
+### Individual App Scripts
 
-## Roadmap
+**Backend:**
+- `npm run dev` - Build and start backend server
+- `npm run build` - Build with ESBuild
 
-Planned improvements:
+**Frontend:**
+- `npm run dev` - Start Vite dev server
+- `npm run build` - Build for production
 
-* Spectator mode
-* Mobile responsive UI and PWA support
-* Tournaments & timed matches
-* Adjustable engine difficulty and better single-player AI
-* UI polish: animated piece movement, PGN export/import
-
----
-
-## Contributing
-
-Contributions are welcome! Steps to contribute:
-
-1. Fork the repo
-2. Create a new branch: `git checkout -b feature/your-feature`
-3. Make your changes and add tests where appropriate
-4. Open a pull request describing the change
-
-Please open an issue to discuss large features before implementing.
+**WebSocket:**
+- `npm run dev` - Build and start WebSocket server
 
 ---
 
-## Acknowledgements
+## 🎮 How to Play
 
-Thanks to the open-source community and libraries like `chess.js` for chess rules/validation.
-
----
-
-## License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
+1. **Sign Up** - Create account or use Google/GitHub OAuth
+2. **View Leaderboards** - Check current player rankings
+3. **Find Opponents** - Connect with other players for matches
+4. **Play Chess** - Real-time chess with instant move updates
+5. **Challenge AI** - Practice against computer opponents
+6. **Track Progress** - View your match history and statistics
 
 ---
 
-## Contact
+## 🔧 Development
 
-Maintainer: `suwubh` (Subhankar Satpathy)
+### Project Structure
 
-Repo: [https://github.com/suwubh/Chess4Nerds](https://github.com/suwubh/Chess4Nerds)
+- **Turborepo** manages the monorepo with optimized builds
+- **TypeScript** across all packages for type safety
+- **Prisma** handles database operations and migrations
+- **Redis** for caching leaderboard data and session management
+- **ESBuild** for fast backend compilation
 
-Feel free to open issues or PRs — happy to collaborate!
+### Key Dependencies
+
+- `chess.js` - Chess game logic and validation
+- `@radix-ui/*` - Accessible UI components
+- `tailwindcss` - Utility-first CSS framework
+- `passport` - Authentication middleware
+- `prisma` - Database toolkit
+- `ws` - WebSocket implementation
+- `redis` - In-memory data structure store
+
+---
+
+## 🗺️ Roadmap
+
+- [x] Real-time multiplayer chess
+- [x] User authentication with OAuth
+- [x] Leaderboard system
+- [x] Match history tracking
+- [x] Redis caching implementation
+- [ ] Enhanced AI difficulty levels
+- [ ] Tournament system
+- [ ] Game replay and analysis
+- [ ] Mobile app completion
+- [ ] Spectator mode
+- [ ] Chess puzzles and training
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Follow general development conventions
+4. Test your changes
+5. Submit a pull request
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## 📞 Contact
+
+**Developer**: Subhankar Satpathy ([@suwubh](https://github.com/suwubh))  
+**Email**: subhankarsatpathy69@gmail.com  
+**Repository**: [Chess4Nerds](https://github.com/suwubh/Chess4Nerds)
+
+---
+
+<div align="center">
+  
+**Built with ❤️ for chess enthusiasts**
+
+*"Every chess master was once a beginner."* - Irving Chernev
+
+</div>
