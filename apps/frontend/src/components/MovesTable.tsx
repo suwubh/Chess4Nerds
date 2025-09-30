@@ -16,13 +16,20 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
-const MovesTable = () => {
+const MovesTable = ({ 
+  onDrawRequest, 
+  onResign 
+}: { 
+  onDrawRequest?: () => void;
+  onResign?: () => void;
+}) => {
   const [userSelectedMoveIndex, setUserSelectedMoveIndex] = useRecoilState(
     userSelectedMoveIndexAtom,
   );
   const setIsFlipped = useSetRecoilState(isBoardFlippedAtom);
   const moves = useRecoilValue(movesAtom);
-  const movesTableRef = useRef<HTMLInputElement>(null);
+  const movesTableRef = useRef<HTMLDivElement>(null);
+  
   const movesArray = moves.reduce((result, _, index: number, array: Move[]) => {
     if (index % 2 === 0) {
       result.push(array.slice(index, index + 2));
@@ -38,6 +45,7 @@ const MovesTable = () => {
       });
     }
   }, [moves]);
+
   return (
     <div className="text-[#C3C3C0] relative w-full ">
       <div
@@ -83,11 +91,17 @@ const MovesTable = () => {
       {moves.length ? (
         <div className="w-full p-2 bg-[#20211D] flex items-center justify-between">
           <div className="flex gap-4">
-            <button className="flex items-center gap-2 hover:bg-[#32302E] rounded px-2.5 py-1">
+            <button
+              onClick={onDrawRequest}
+              className="flex items-center gap-2 hover:bg-[#32302E] rounded px-2.5 py-1"
+            >
               {<HandshakeIcon size={16} />}
               Draw
             </button>
-            <button className="flex items-center gap-2 hover:bg-[#32302E] rounded px-2.5 py-1">
+            <button
+              onClick={onResign}
+              className="flex items-center gap-2 hover:bg-[#32302E] rounded px-2.5 py-1"
+            >
               {<FlagIcon size={16} />}
               Resign
             </button>
@@ -106,11 +120,12 @@ const MovesTable = () => {
 
             <button
               onClick={() => {
-                setUserSelectedMoveIndex((prev) =>
-                  prev !== null ? prev - 1 : moves.length - 2,
-                );
+                setUserSelectedMoveIndex((prev) => {
+                  if (prev === null) return moves.length > 1 ? moves.length - 2 : 0;
+                  return Math.max(0, prev - 1);
+                });
               }}
-              disabled={userSelectedMoveIndex === 0}
+              disabled={userSelectedMoveIndex === 0 || moves.length === 0}
               className="hover:text-white"
             >
               <ChevronLeft />

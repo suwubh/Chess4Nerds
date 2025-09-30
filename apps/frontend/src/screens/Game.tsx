@@ -10,6 +10,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import MovesTable from '../components/MovesTable';
 import { useUser } from '@repo/store/useUser';
 import { UserAvatar } from '../components/UserAvatar';
+import ErrorBoundary from '../components/ErrorBoundary';
+import DrawRequestModal from '../components/DrawRequestModal';
 
 export const INIT_GAME = 'init_game';
 export const MOVE = 'move';
@@ -23,6 +25,12 @@ export const USER_TIMEOUT = 'user_timeout';
 export const GAME_TIME = 'game_time';
 export const GAME_ENDED = 'game_ended';
 export const EXIT_GAME = 'exit_game';
+
+// New game actions
+export const RESIGN_GAME = 'resign_game';
+export const DRAW_REQUEST = 'draw_request';
+export const DRAW_RESPONSE = 'draw_response';
+export const DRAW_REQUEST_RECEIVED = 'draw_request_received';
 
 // Chat events: must match server
 export const CHAT_MESSAGE = 'chat:message';
@@ -52,7 +60,6 @@ import { movesAtom, userSelectedMoveIndexAtom } from '@repo/store/chessBoard';
 import GameEndModal from '@/components/GameEndModal';
 import { Waitopponent } from '@/components/ui/waitopponent';
 import { ShareGame } from '../components/ShareGame';
-import ExitGameModel from '@/components/ExitGameModel';
 
 const moveAudio = new Audio(MoveSound);
 
@@ -81,6 +88,10 @@ export const Game = () => {
   const setMoves = useSetRecoilState(movesAtom);
   const userSelectedMoveIndex = useRecoilValue(userSelectedMoveIndexAtom);
   const userSelectedMoveIndexRef = useRef(userSelectedMoveIndex);
+
+  // New draw-related state
+  const [showDrawRequest, setShowDrawRequest] = useState(false);
+  const [drawRequester, setDrawRequester] = useState<string | null>(null);
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
@@ -131,7 +142,7 @@ export const Game = () => {
           setPlayer1TimeConsumed(player1TimeConsumed);
           setPlayer2TimeConsumed(player2TimeConsumed);
           if (userSelectedMoveIndexRef.current !== null) {
-            setMoves((moves: any) => [...moves, move]);
+            setMoves((moves) => [...moves, move]);
             return;
           }
           try {
@@ -144,7 +155,7 @@ export const Game = () => {
             } else {
               chess.move({ from: move.from, to: move.to });
             }
-            setMoves((moves: any) => [...moves, move]);
+            setMoves((moves) => [...moves, move]);
             moveAudio.play();
           } catch (error) {
             console.log('Error', error);
@@ -233,6 +244,23 @@ export const Game = () => {
           });
           break;
 
+        case DRAW_REQUEST_RECEIVED:
+          setShowDrawRequest(true);
+          setDrawRequester(message.payload.fromUserId);
+          break;
+
+        case DRAW_RESPONSE:
+          if (message.payload.accepted) {
+            setResult({
+              result: Result.DRAW,
+              by: 'Mutual Agreement'
+            });
+          } else {
+            // Show rejection message (optional)
+            alert('Draw request rejected');
+          }
+          break;
+
         default:
           if (message?.payload?.message) {
             alert(message.payload.message);
@@ -287,15 +315,45 @@ export const Game = () => {
     );
   };
 
-  const handleExit = () => {
+  // Replaced handleExit with resign/draw handlers
+  const handleResign = () => {
     socket?.send(
       JSON.stringify({
-        type: EXIT_GAME,
+        type: RESIGN_GAME,
         payload: { gameId },
       }),
     );
     setMoves([]);
     navigate('/');
+  };
+
+  const handleDrawRequest = () => {
+    socket?.send(
+      JSON.stringify({
+        type: DRAW_REQUEST,
+        payload: { gameId },
+      }),
+    );
+  };
+
+  const handleDrawAccept = () => {
+    socket?.send(
+      JSON.stringify({
+        type: DRAW_RESPONSE,
+        payload: { gameId, accepted: true },
+      }),
+    );
+    setShowDrawRequest(false);
+  };
+
+  const handleDrawReject = () => {
+    socket?.send(
+      JSON.stringify({
+        type: DRAW_RESPONSE,
+        payload: { gameId, accepted: false },
+      }),
+    );
+    setShowDrawRequest(false);
   };
 
   // FIXED: Single sendChat function for the main socket
@@ -378,8 +436,8 @@ export const Game = () => {
               </div>
             </div>
 
-            {/* Right column: Moves on top, Chat below */}
-            <div className="rounded-md pt-2 bg-bgAuxiliary3 flex-1 h-[95vh] flex flex-col">
+            {/* FIXED: Right column with proper height constraints */}
+            <div className="rounded-md pt-2 bg-bgAuxiliary3 flex-1 h-[95vh] flex flex-col overflow-hidden">
               {!started ? (
                 <div className="pt-8 flex justify-center w-full flex-1">
                   {added ? (
@@ -403,19 +461,25 @@ export const Game = () => {
                   )}
                 </div>
               ) : (
-                <div className="p-4 flex flex-col gap-4 flex-1">
-                  {/* Moves panel (top) */}
-                  <div className="rounded-md bg-zinc-800/50 border border-zinc-700 p-3 flex-none">
+                <div className="p-4 flex flex-col gap-4 h-full overflow-hidden">
+                  {/* FIXED: Moves panel with fixed height */}
+                  <div className="rounded-md bg-zinc-800/50 border border-zinc-700 p-3 h-80 flex flex-col">
                     <div className="text-white font-semibold mb-2">Moves</div>
-                    <div className="max-h-64 overflow-y-auto pr-1">
-                      <MovesTable />
+                    <div className="flex-1 overflow-y-auto pr-1">
+                      <ErrorBoundary>
+                        <MovesTable 
+                          onDrawRequest={handleDrawRequest}
+                          onResign={handleResign}
+                        />
+                      </ErrorBoundary>
                     </div>
                   </div>
 
-                  {/* FIXED: Chat panel using single WebSocket connection */}
-                  <div className="rounded-md bg-zinc-800/50 border border-zinc-700 p-3 flex-1 flex flex-col">
+                  {/* FIXED: Chat panel with constrained height and internal scrolling */}
+                  <div className="rounded-md bg-zinc-800/50 border border-zinc-700 p-3 flex-1 flex flex-col min-h-0">
                     <div className="text-white font-semibold mb-2">Chat</div>
-                    <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                    {/* FIXED: Chat messages container with fixed height and scroll */}
+                    <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0">
                       {chatMessages.map((m, idx) => {
                         const mine = m.fromUserId === user.id;
                         return (
@@ -436,7 +500,8 @@ export const Game = () => {
                       })}
                       <div ref={chatEndRef} />
                     </div>
-                    <div className="flex gap-2 mt-3">
+                    {/* FIXED: Input area stays at bottom */}
+                    <div className="flex gap-2 mt-3 flex-shrink-0">
                       <input
                         value={chatInput}
                         onChange={(e) => setChatInput(e.target.value)}
@@ -448,10 +513,7 @@ export const Game = () => {
                     </div>
                   </div>
 
-                  {/* Exit button row */}
-                  <div className="flex-none">
-                    <ExitGameModel onClick={() => handleExit()} />
-                  </div>
+                  {/* Previously ExitGameModel was here; removed in favor of resign via MovesTable */}
                 </div>
               )}
             </div>
@@ -459,6 +521,17 @@ export const Game = () => {
           </div>
         </div>
       </div>
+
+      <DrawRequestModal
+        isOpen={showDrawRequest}
+        onAccept={handleDrawAccept}
+        onReject={handleDrawReject}
+        opponentName={
+          drawRequester === gameMetadata?.whitePlayer?.id
+            ? gameMetadata?.whitePlayer?.name
+            : gameMetadata?.blackPlayer?.name
+        }
+      />
     </div>
   );
 };

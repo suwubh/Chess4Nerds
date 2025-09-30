@@ -1,5 +1,7 @@
 import { WebSocket } from 'ws';
+
 import { User } from './types';
+
 import {
   GAME_OVER,
   INIT_GAME,
@@ -15,16 +17,29 @@ import {
   EXIT_GAME,
   CHAT_SEND,
   CHAT_MESSAGE,
+  // NEW MESSAGE TYPES:
+  RESIGN_GAME,
+  DRAW_REQUEST,
+  DRAW_RESPONSE,
+  DRAW_REQUEST_RECEIVED
 } from './messages';
+
 import { Game, isPromoting } from './Game';
+
 import { db } from './db';
+
 import { socketManager } from './SocketManager';
+
 import { Square } from 'chess.js';
+
 import { GameStatus } from '@prisma/client';
 
 export class GameManager {
+
   private games: Game[];
+
   private pendingGameId: string | null;
+
   private users: User[];
 
   constructor() {
@@ -44,7 +59,6 @@ export class GameManager {
       console.error('User not found?');
       return;
     }
-
     this.users = this.users.filter((u) => u.userId !== user.userId);
     socketManager.removeUser(user);
   }
@@ -57,7 +71,7 @@ export class GameManager {
   private addHandler(user: User) {
     user.socket.on('message', async (data) => {
       const message = JSON.parse(data.toString());
-      
+
       if (message.type === INIT_GAME) {
         if (this.pendingGameId) {
           const game = this.games.find((x) => x.gameId === this.pendingGameId);
@@ -65,7 +79,6 @@ export class GameManager {
             console.error('Pending game not found?');
             return;
           }
-
           if (user.userId === game.player1UserId) {
             socketManager.broadcast(
               game.gameId,
@@ -76,7 +89,6 @@ export class GameManager {
             );
             return;
           }
-
           socketManager.addUser(user, game.gameId);
           await game?.updateSecondPlayer(user.userId);
           this.pendingGameId = null;
@@ -200,12 +212,100 @@ export class GameManager {
         return;
       }
 
+      // ====== NEW: RESIGN AND DRAW HANDLERS ======
+      if (message.type === RESIGN_GAME) {
+        const gameId = message.payload.gameId;
+        const game = this.games.find((game) => game.gameId === gameId);
+        if (!game) return;
+
+        const resigningPlayer = user.userId;
+        const opponent = game.player1UserId === resigningPlayer ? game.player2UserId : game.player1UserId;
+        if (!opponent) return;
+
+        const result = opponent === game.player1UserId ? 'WHITE_WINS' : 'BLACK_WINS';
+        await game.endGame('COMPLETED', result);
+
+        socketManager.broadcast(
+          gameId,
+          JSON.stringify({
+            type: GAME_ENDED,
+            payload: {
+              result,
+              status: 'RESIGNATION',
+              winner: opponent
+            }
+          })
+        );
+        this.removeGame(gameId);
+        return;
+      }
+
+      if (message.type === DRAW_REQUEST) {
+        const gameId = message.payload.gameId;
+        const game = this.games.find((game) => game.gameId === gameId);
+        if (!game) return;
+
+        const requester = user.userId;
+        const opponent = game.player1UserId === requester ? game.player2UserId : game.player1UserId;
+        if (!opponent) return;
+
+        socketManager.sendToUser(
+          opponent,
+          JSON.stringify({
+            type: DRAW_REQUEST_RECEIVED,
+            payload: {
+              gameId,
+              fromUserId: requester,
+            }
+          })
+        );
+        return;
+      }
+
+      if (message.type === DRAW_RESPONSE) {
+        const gameId = message.payload.gameId;
+        const accepted = message.payload.accepted;
+        const game = this.games.find((game) => game.gameId === gameId);
+        if (!game) return;
+
+        if (accepted) {
+          await game.endGame('COMPLETED', 'DRAW');
+          socketManager.broadcast(
+            gameId,
+            JSON.stringify({
+              type: GAME_ENDED,
+              payload: {
+                result: 'DRAW',
+                status: 'MUTUAL_AGREEMENT'
+              }
+            })
+          );
+          this.removeGame(gameId);
+        } else {
+          const rejectingPlayer = user.userId;
+          const requestor = game.player1UserId === rejectingPlayer ? game.player2UserId : game.player1UserId;
+          if (requestor) {
+            socketManager.sendToUser(
+              requestor,
+              JSON.stringify({
+                type: DRAW_RESPONSE,
+                payload: {
+                  accepted: false,
+                  gameId
+                }
+              })
+            );
+          }
+        }
+        return;
+      }
+      // ====== END NEW HANDLERS ======
+
       // FIXED: Chat message handling - broadcast to all with sender info
       if (message.type === CHAT_SEND) {
         const gameId: string | undefined = message.payload?.gameId;
         const text: string = (message.payload?.text ?? '').toString().trim();
         if (!gameId || !text || text.length > 500) return;
-        
         const outbound = {
           type: CHAT_MESSAGE,
           payload: {
@@ -215,12 +315,13 @@ export class GameManager {
             fromUserId: user.userId,
           },
         };
-        
         // Broadcast to everyone including the sender
         // The client should handle deduplication using the fromUserId
         socketManager.broadcast(gameId, JSON.stringify(outbound));
         return;
       }
+
     });
   }
+
 }

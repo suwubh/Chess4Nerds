@@ -12,6 +12,10 @@ export const GAME_ADDED = 'game_added';
 export const GAME_TIME = 'game_time';
 export const EXIT_GAME = 'exit_game';
 
-// New for chat
 export const CHAT_SEND = 'chat:send';
 export const CHAT_MESSAGE = 'chat:message';
+
+export const RESIGN_GAME = 'resign_game';
+export const DRAW_REQUEST = 'draw_request';
+export const DRAW_RESPONSE = 'draw_response';
+export const DRAW_REQUEST_RECEIVED = 'draw_request_received';

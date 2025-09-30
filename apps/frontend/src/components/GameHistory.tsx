@@ -146,7 +146,7 @@ const GameHistory: React.FC<GameHistoryProps> = ({ userId }) => {
         {games.length >= 10 && (
           <a 
             href={`/history/${userId}`} 
-            className="text-sm text-purple-600 hover:underline"
+            className="text-sm text-white hover:underline"
           >
             View All →
           </a>
