@@ -4,7 +4,7 @@ import { Chess } from 'chess.js';
 import { ChessBoard } from '@/components/ChessBoard';
 import { useThemeContext } from '@/hooks/useThemes';
 import { useRecoilState } from 'recoil';
-import { movesAtom } from '@repo/store/chessBoard';
+import { movesAtom } from '@repo/store/src/atoms/chessBoard';
 
 export const ComputerGame = () => {
   const [chess] = useState(() => new Chess());

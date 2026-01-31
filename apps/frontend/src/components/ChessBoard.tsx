@@ -18,7 +18,7 @@ import {
   isBoardFlippedAtom,
   movesAtom,
   userSelectedMoveIndexAtom,
-} from '@repo/store/chessBoard';
+} from '@repo/store/src/atoms/chessBoard';
 
 // helper for promotions
 export function isPromoting(chess: Chess, from: Square, to: Square) {

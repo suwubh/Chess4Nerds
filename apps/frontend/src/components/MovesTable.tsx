@@ -2,7 +2,7 @@ import {
   isBoardFlippedAtom,
   movesAtom,
   userSelectedMoveIndexAtom,
-} from '@repo/store/chessBoard';
+} from '@repo/store/src/atoms/chessBoard';
 import { Move } from 'chess.js';
 import { useEffect, useRef } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';

@@ -13,7 +13,7 @@ import {
 import { useEffect, useState } from 'react';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
 import { type LucideIcon } from 'lucide-react';
-import { useUser } from '@repo/store/useUser';
+import { useUser } from '@repo/store/src/hooks/useUser';
 
 const BACKEND_URL =
   import.meta.env.VITE_APP_BACKEND_URL ?? 'http://localhost:3000';
