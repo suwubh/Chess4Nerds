@@ -1,6 +1,7 @@
 import { WebSocketServer } from 'ws';
 import { GameManager } from './GameManager';
 import url from 'url';
+import 'dotenv/config';
 import { extractAuthUser } from './auth';
 
 const wss = new WebSocketServer({ port: 8080 });

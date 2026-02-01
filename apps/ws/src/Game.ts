@@ -152,6 +152,7 @@ export class Game {
     async createGameInDb() {
         this.startTime = new Date(Date.now());
         this.lastMoveTime = this.startTime;
+
         const game = await db.game.create({
             data: {
                 id: this.gameId,
@@ -159,14 +160,27 @@ export class Game {
                 status: 'IN_PROGRESS',
                 startAt: this.startTime,
                 currentFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+
                 whitePlayer: {
-                    connect: {
-                        id: this.player1UserId,
+                    connectOrCreate: {
+                        where: { id: this.player1UserId },
+                        create: {
+                            id: this.player1UserId,
+                            provider: AuthProvider.GUEST,
+                            name: `Guest_${this.player1UserId.slice(0, 6)}`,
+                            email: `guest_${this.player1UserId}@guest.local`,
+                        },
                     },
                 },
                 blackPlayer: {
-                    connect: {
-                        id: this.player2UserId ?? '',
+                    connectOrCreate: {
+                        where: { id: this.player2UserId! },
+                        create: {
+                            id: this.player2UserId!,
+                            provider: AuthProvider.GUEST,
+                            name: `Guest_${this.player2UserId!.slice(0, 6)}`,
+                            email: `guest_${this.player2UserId}@guest.local`,
+                        },
                     },
                 },
             },
@@ -175,8 +189,10 @@ export class Game {
                 blackPlayer: true,
             },
         });
+
         this.gameId = game.id;
     }
+
 
     async addMoveToDb(move: Move, moveTimestamp: Date) {
         await db.$transaction([

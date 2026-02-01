@@ -1,4 +1,5 @@
-import { useThemeContext } from '@/hooks/useThemes'; // Adjust to your theme context location
+import { useThemeContext } from '@/hooks/useThemes';
+
 
 export const Button = ({
   onClick,
