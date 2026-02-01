@@ -243,7 +243,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 <div align="center">
   
-**Built with  for chess enthusiasts**
+**Built with ❤️ for chess enthusiasts**
 
 *"Every chess master was once a beginner."* - Irving Chernev
 
