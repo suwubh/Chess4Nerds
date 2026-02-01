@@ -194,7 +194,7 @@ export const ComputerGame = () => {
         <div className="text-center">
           {isThinking && (
             <p className="text-blue-500 animate-pulse font-bold">
-              Computer is thinking... 🤖
+              Computer is thinking...
             </p>
           )}
           {gameStatus === 'checkmate' && (

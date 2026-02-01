@@ -1,4 +1,4 @@
-# ♟️ Chess4Nerds
+#  Chess4Nerds
 
 **A modern, full-stack multiplayer chess platform built with TypeScript**
 
@@ -8,24 +8,24 @@
 
 ---
 
-## 🚀 Overview
+##  Overview
 
 Chess4Nerds is a comprehensive chess platform featuring real-time multiplayer gameplay, competitive leaderboards, match history tracking, and modern web technologies. Built as a Turborepo monorepo with TypeScript throughout.
 
-### ✨ Key Features
+###  Key Features
 
-- 🎮 **Real-time Multiplayer** - Play chess instantly via WebSocket connections
-- 🏆 **Competitive Leaderboards** - Real-time ranking system with player statistics
-- 📊 **Match History** - Comprehensive game tracking and analysis
-- 🤖 **AI Chess Engine** - Challenge computer opponents using chess.js
-- 🔐 **OAuth Authentication** - Secure login with Google & GitHub integration
-- ⚡ **Redis Caching** - Fast data access and session management
-- 📱 **Cross-platform** - Web application with React Native mobile support
-- 🎨 **Modern UI** - Built with React, Tailwind CSS, and Radix UI components
+-  **Real-time Multiplayer** - Play chess instantly via WebSocket connections
+-  **Competitive Leaderboards** - Real-time ranking system with player statistics
+-  **Match History** - Comprehensive game tracking and analysis
+-  **AI Chess Engine** - Challenge computer opponents using chess.js
+-  **OAuth Authentication** - Secure login with Google & GitHub integration
+-  **Redis Caching** - Fast data access and session management
+-  **Cross-platform** - Web application with React Native mobile support
+-  **Modern UI** - Built with React, Tailwind CSS, and Radix UI components
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 This project uses **Turborepo** for monorepo management:
 
@@ -43,7 +43,7 @@ chess4nerds/
 └── Configuration files
 ```
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 ### Frontend
 - **React 18** with TypeScript and Vite
@@ -75,7 +75,7 @@ chess4nerds/
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 
@@ -142,7 +142,7 @@ chess4nerds/
 
 ---
 
-## 📋 Available Scripts
+##  Available Scripts
 
 | Command | Description |
 |---------|-------------|
@@ -166,7 +166,7 @@ chess4nerds/
 
 ---
 
-## 🎮 How to Play
+##  How to Play
 
 1. **Sign Up** - Create account or use Google/GitHub OAuth
 2. **View Leaderboards** - Check current player rankings
@@ -177,7 +177,7 @@ chess4nerds/
 
 ---
 
-## 🔧 Development
+##  Development
 
 ### Project Structure
 
@@ -199,7 +199,7 @@ chess4nerds/
 
 ---
 
-## 🗺️ Roadmap
+##  Roadmap
 
 - [x] Real-time multiplayer chess
 - [x] User authentication with OAuth
@@ -215,7 +215,7 @@ chess4nerds/
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions welcome! Please:
 
@@ -227,13 +227,13 @@ Contributions welcome! Please:
 
 ---
 
-## 📄 License
+##  License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-## 📞 Contact
+##  Contact
 
 **Developer**: Subhankar Satpathy ([@suwubh](https://github.com/suwubh))  
 **Email**: subhankarsatpathy69@gmail.com  
@@ -243,7 +243,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 <div align="center">
   
-**Built with ❤️ for chess enthusiasts**
+**Built with  for chess enthusiasts**
 
 *"Every chess master was once a beginner."* - Irving Chernev
 
