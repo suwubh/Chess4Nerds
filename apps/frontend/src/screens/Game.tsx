@@ -1,17 +1,22 @@
 /* eslint-disable no-case-declarations */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useRef, useState } from 'react';
+import { Chess, Move } from 'chess.js';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
+
 import MoveSound from '/move.wav';
 import { Button } from '../components/Button';
 import { ChessBoard, isPromoting } from '../components/ChessBoard';
 import { useSocket } from '../hooks/useSocket';
-import { Chess, Move } from 'chess.js';
-import { useNavigate, useParams } from 'react-router-dom';
 import MovesTable from '../components/MovesTable';
 import { useUser } from '@repo/store/src/hooks/useUser';
 import { UserAvatar } from '../components/UserAvatar';
 import ErrorBoundary from '../components/ErrorBoundary';
 import DrawRequestModal from '../components/DrawRequestModal';
+import { movesAtom, userSelectedMoveIndexAtom } from '@repo/store/src/atoms/chessBoard';
+import GameEndModal from '@/components/GameEndModal';
+import { Waitopponent } from '@/components/ui/waitopponent';
+import { ShareGame } from '../components/ShareGame';
 
 export const INIT_GAME = 'init_game';
 export const MOVE = 'move';
@@ -26,13 +31,11 @@ export const GAME_TIME = 'game_time';
 export const GAME_ENDED = 'game_ended';
 export const EXIT_GAME = 'exit_game';
 
-// New game actions
 export const RESIGN_GAME = 'resign_game';
 export const DRAW_REQUEST = 'draw_request';
 export const DRAW_RESPONSE = 'draw_response';
 export const DRAW_REQUEST_RECEIVED = 'draw_request_received';
 
-// Chat events: must match server
 export const CHAT_MESSAGE = 'chat:message';
 export const CHAT_SEND = 'chat:send';
 
@@ -47,26 +50,19 @@ export interface GameResult {
   by: string;
 }
 
-const GAME_TIME_MS = 10 * 60 * 1000;
-
 export interface Player {
   id: string;
   name: string;
   isGuest: boolean;
 }
 
-import { useRecoilValue, useSetRecoilState } from 'recoil';
-import { movesAtom, userSelectedMoveIndexAtom } from '@repo/store/src/atoms/chessBoard';
-import GameEndModal from '@/components/GameEndModal';
-import { Waitopponent } from '@/components/ui/waitopponent';
-import { ShareGame } from '../components/ShareGame';
-
-const moveAudio = new Audio(MoveSound);
-
 export interface Metadata {
   blackPlayer: Player;
   whitePlayer: Player;
 }
+
+const GAME_TIME_MS = 10 * 60 * 1000;
+const moveAudio = new Audio(MoveSound);
 
 type ChatMsg = { fromUserId: string; text: string; ts: number; gameId?: string };
 
@@ -76,7 +72,7 @@ export const Game = () => {
   const user = useUser();
 
   const navigate = useNavigate();
-  const [chess, _setChess] = useState(new Chess());
+  const [chess] = useState(() => new Chess());
   const [board, setBoard] = useState(chess.board());
   const [added, setAdded] = useState(false);
   const [started, setStarted] = useState(false);
@@ -89,16 +85,14 @@ export const Game = () => {
   const userSelectedMoveIndex = useRecoilValue(userSelectedMoveIndexAtom);
   const userSelectedMoveIndexRef = useRef(userSelectedMoveIndex);
 
-  // New draw-related state
   const [showDrawRequest, setShowDrawRequest] = useState(false);
   const [drawRequester, setDrawRequester] = useState<string | null>(null);
 
-  // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Avoid duplicate JOIN_ROOM for the same gameId (helps with StrictMode/dev remounts)
+  // Avoid duplicate JOIN_ROOM in StrictMode/dev remounts
   const joinedRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -214,33 +208,24 @@ export const Game = () => {
           setPlayer2TimeConsumed(message.payload.player2Time);
           break;
 
-        // FIXED: Incoming chat with deduplication
         case CHAT_MESSAGE:
-          if (!message.payload) break;
-          if (!gameId || message.payload.gameId !== gameId) break;
-          
+          if (!message.payload || !gameId || message.payload.gameId !== gameId) break;
+
           const newMessage: ChatMsg = {
             fromUserId: message.payload.fromUserId,
             text: String(message.payload.text || ''),
             ts: Number(message.payload.ts || Date.now()),
             gameId: message.payload.gameId,
           };
-          
-          // Add deduplication logic to prevent duplicate messages
+
           setChatMessages((prev) => {
-            // Check if message already exists (by timestamp + text + fromUserId)
-            const exists = prev.some(m => 
-              m.ts === newMessage.ts && 
-              m.text === newMessage.text && 
-              m.fromUserId === newMessage.fromUserId
+            const isDuplicate = prev.some(
+              (m) =>
+                m.ts === newMessage.ts &&
+                m.text === newMessage.text &&
+                m.fromUserId === newMessage.fromUserId,
             );
-            
-            if (exists) {
-              console.log('Duplicate chat message detected, skipping:', newMessage);
-              return prev;
-            }
-            
-            return [...prev, newMessage];
+            return isDuplicate ? prev : [...prev, newMessage];
           });
           break;
 
@@ -251,12 +236,8 @@ export const Game = () => {
 
         case DRAW_RESPONSE:
           if (message.payload.accepted) {
-            setResult({
-              result: Result.DRAW,
-              by: 'Mutual Agreement'
-            });
+            setResult({ result: Result.DRAW, by: 'Mutual Agreement' });
           } else {
-            // Show rejection message (optional)
             alert('Draw request rejected');
           }
           break;
@@ -280,12 +261,8 @@ export const Game = () => {
       joinedRef.current = gameId || null;
     }
 
-    // Optional cleanup: clear handler on unmount
     return () => {
-      if (socket) {
-        // @ts-ignore
-        socket.onmessage = null;
-      }
+      if (socket) socket.onmessage = null;
     };
   }, [socket, gameId, navigate, setMoves, chess]);
 
@@ -315,7 +292,6 @@ export const Game = () => {
     );
   };
 
-  // Replaced handleExit with resign/draw handlers
   const handleResign = () => {
     socket?.send(
       JSON.stringify({
@@ -356,7 +332,6 @@ export const Game = () => {
     setShowDrawRequest(false);
   };
 
-  // FIXED: Single sendChat function for the main socket
   function sendChat() {
     const text = chatInput.trim();
     if (!text || !socket || !gameId) return;
@@ -373,7 +348,7 @@ export const Game = () => {
     if (e.key === 'Enter') sendChat();
   }
 
-  if (!socket) return <div>Connecting...</div>;
+  if (!socket || !user) return <div>Connecting...</div>;
 
   return (
     <div className="">
@@ -436,8 +411,7 @@ export const Game = () => {
               </div>
             </div>
 
-            {/* FIXED: Right column with proper height constraints */}
-            <div className="rounded-md pt-2 bg-bgAuxiliary3 flex-1 h-[95vh] flex flex-col overflow-hidden">
+<div className="rounded-md pt-2 bg-bgAuxiliary3 flex-1 h-[95vh] flex flex-col overflow-hidden">
               {!started ? (
                 <div className="pt-8 flex justify-center w-full flex-1">
                   {added ? (
@@ -462,7 +436,6 @@ export const Game = () => {
                 </div>
               ) : (
                 <div className="p-4 flex flex-col gap-4 h-full overflow-hidden">
-                  {/* FIXED: Moves panel with fixed height */}
                   <div className="rounded-md bg-zinc-800/50 border border-zinc-700 p-3 h-80 flex flex-col">
                     <div className="text-white font-semibold mb-2">Moves</div>
                     <div className="flex-1 overflow-y-auto pr-1">
@@ -475,10 +448,8 @@ export const Game = () => {
                     </div>
                   </div>
 
-                  {/* FIXED: Chat panel with constrained height and internal scrolling */}
                   <div className="rounded-md bg-zinc-800/50 border border-zinc-700 p-3 flex-1 flex flex-col min-h-0">
                     <div className="text-white font-semibold mb-2">Chat</div>
-                    {/* FIXED: Chat messages container with fixed height and scroll */}
                     <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0">
                       {chatMessages.map((m, idx) => {
                         const mine = m.fromUserId === user.id;
@@ -500,7 +471,6 @@ export const Game = () => {
                       })}
                       <div ref={chatEndRef} />
                     </div>
-                    {/* FIXED: Input area stays at bottom */}
                     <div className="flex gap-2 mt-3 flex-shrink-0">
                       <input
                         value={chatInput}
@@ -513,7 +483,6 @@ export const Game = () => {
                     </div>
                   </div>
 
-                  {/* Previously ExitGameModel was here; removed in favor of resign via MovesTable */}
                 </div>
               )}
             </div>

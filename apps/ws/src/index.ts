@@ -1,43 +1,37 @@
+import 'dotenv/config';
+import url from 'url';
 import { WebSocketServer } from 'ws';
 import { GameManager } from './GameManager';
-import url from 'url';
-import 'dotenv/config';
 import { extractAuthUser } from './auth';
 
-const wss = new WebSocketServer({ port: 8080 });
+const PORT = Number(process.env.WS_PORT) || 8080;
+const wss = new WebSocketServer({ port: PORT });
 const gameManager = new GameManager();
 
-wss.on('connection', function connection(ws, req) {
-    try {
-        const parsedUrl = url.parse(req.url || '', true);
-        const token = parsedUrl.query.token as string;
-        
-        if (!token) {
-            console.log('Connection rejected: No token provided');
-            ws.close(1008, 'Unauthorized');
-            return;
-        }
+wss.on('connection', (ws, req) => {
+  const { query } = url.parse(req.url || '', true);
+  const token = typeof query.token === 'string' ? query.token : null;
 
-        const user = extractAuthUser(token, ws);
-        console.log(`User connected: ${user.userId}`);
-        
-        gameManager.addUser(user);
+  if (!token) {
+    ws.close(1008, 'Unauthorized');
+    return;
+  }
 
-        ws.on('close', () => {
-            console.log(`User disconnected: ${user.userId}`);
-            gameManager.removeUser(user);
-        });
+  let user;
+  try {
+    user = extractAuthUser(token, ws);
+  } catch (err) {
+    console.error('Auth failed:', err instanceof Error ? err.message : err);
+    ws.close(1008, 'Unauthorized');
+    return;
+  }
 
-        ws.on('error', (error) => {
-            console.error('WebSocket error:', error);
-        });
+  gameManager.addUser(user);
 
-    } catch (error) {
-        console.error('Connection error:', error);
-        ws.close(1011, 'Server error');
-    }
+  ws.on('close', () => gameManager.removeUser(user));
+  ws.on('error', (error) => console.error('WebSocket error:', error));
 });
 
-console.log('WebSocket server started on port 8080');
+console.log(`WebSocket server listening on port ${PORT}`);
 
 export default wss;

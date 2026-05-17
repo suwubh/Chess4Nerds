@@ -20,7 +20,6 @@ import {
   userSelectedMoveIndexAtom,
 } from '@repo/store/src/atoms/chessBoard';
 
-// helper for promotions
 export function isPromoting(chess: Chess, from: Square, to: Square) {
   if (!from) return false;
 
@@ -30,8 +29,8 @@ export function isPromoting(chess: Chess, from: Square, to: Square) {
   if (!['1', '8'].some((it) => to.endsWith(it))) return false;
 
   return chess
-    .history({ verbose: true })
-    .map((it) => it.to)
+    .moves({ square: from, verbose: true })
+    .map((m) => m.to)
     .includes(to);
 }
 
@@ -81,8 +80,6 @@ export const ChessBoard = memo(
     )[][];
     socket: WebSocket;
   }) => {
-    console.log('chessboard reloaded');
-
     const { theme } = useThemeContext();
 
     const [isFlipped, setIsFlipped] = useRecoilState(isBoardFlippedAtom);
@@ -111,7 +108,6 @@ export const ChessBoard = memo(
       }
     };
 
-    // ✅ Flip board whenever myColor changes
     useEffect(() => {
       setIsFlipped(myColor === 'b');
     }, [myColor, setIsFlipped]);

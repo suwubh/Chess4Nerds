@@ -1,23 +1,28 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [
-    "**/.env.*local",
-    "COOKIE_SECRET",
-    "ALLOWED_HOSTS",
+    "**/.env",
+    "**/.env.*local"
+  ],
+  "globalEnv": [
     "PORT",
+    "WS_PORT",
+    "JWT_SECRET",
+    "COOKIE_SECRET",
+    "DATABASE_URL",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
     "GITHUB_CLIENT_ID",
     "GITHUB_CLIENT_SECRET",
-    "FACEBOOK_APP_ID",
-    "FACEBOOK_APP_SECRET",
     "AUTH_REDIRECT_URL",
-    "JWT_SECRET"
+    "ALLOWED_ORIGINS",
+    "VITE_APP_BACKEND_URL",
+    "VITE_APP_WS_URL"
   ],
   "pipeline": {
     "build": {
       "dependsOn": ["db:generate", "^build"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]

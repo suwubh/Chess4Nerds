@@ -1,13 +1,8 @@
-import { WebSocket } from 'ws';
-
 import { User } from './types';
-
+import { GameStatus } from '@prisma/client';
 import {
-  GAME_OVER,
   INIT_GAME,
-  JOIN_GAME,
   MOVE,
-  OPPONENT_DISCONNECTED,
   JOIN_ROOM,
   GAME_JOINED,
   GAME_NOT_FOUND,
@@ -17,22 +12,14 @@ import {
   EXIT_GAME,
   CHAT_SEND,
   CHAT_MESSAGE,
-  // NEW MESSAGE TYPES:
   RESIGN_GAME,
   DRAW_REQUEST,
   DRAW_RESPONSE,
-  DRAW_REQUEST_RECEIVED
+  DRAW_REQUEST_RECEIVED,
 } from './messages';
-
-import { Game, isPromoting } from './Game';
-
+import { Game } from './Game';
 import { db } from './db';
-
 import { socketManager } from './SocketManager';
-
-import { Square } from 'chess.js';
-
-import { GameStatus } from '@prisma/client';
 
 export class GameManager {
 
@@ -212,7 +199,6 @@ export class GameManager {
         return;
       }
 
-      // ====== NEW: RESIGN AND DRAW HANDLERS ======
       if (message.type === RESIGN_GAME) {
         const gameId = message.payload.gameId;
         const game = this.games.find((game) => game.gameId === gameId);
@@ -299,28 +285,24 @@ export class GameManager {
         }
         return;
       }
-      // ====== END NEW HANDLERS ======
-
-      // FIXED: Chat message handling - broadcast to all with sender info
       if (message.type === CHAT_SEND) {
         const gameId: string | undefined = message.payload?.gameId;
         const text: string = (message.payload?.text ?? '').toString().trim();
         if (!gameId || !text || text.length > 500) return;
-        const outbound = {
-          type: CHAT_MESSAGE,
-          payload: {
-            gameId,
-            text,
-            ts: Date.now(),
-            fromUserId: user.userId,
-          },
-        };
-        // Broadcast to everyone including the sender
-        // The client should handle deduplication using the fromUserId
-        socketManager.broadcast(gameId, JSON.stringify(outbound));
+        socketManager.broadcast(
+          gameId,
+          JSON.stringify({
+            type: CHAT_MESSAGE,
+            payload: {
+              gameId,
+              text,
+              ts: Date.now(),
+              fromUserId: user.userId,
+            },
+          }),
+        );
         return;
       }
-
     });
   }
 

@@ -17,9 +17,5 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ],
-  "dependencies": {
-    "chessboardjsx": "^2.4.7",
-    "js-chess-engine": "^1.0.2"
-  }
+  ]
 }

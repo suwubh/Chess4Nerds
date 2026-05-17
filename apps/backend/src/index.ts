@@ -1,24 +1,32 @@
+import 'dotenv/config';
 import express from 'express';
-import v1Router from './router/v1';
 import cors from 'cors';
-import { initPassport } from './passport';
-import authRoute from './router/auth';
-import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import passport from 'passport';
-import cookieParser from 'cookie-parser';
-import { COOKIE_MAX_AGE } from './consts';
+
+import authRoute from './router/auth';
 import leaderboardRoutes from './router/leaderboard';
 import gameHistoryRoutes from './router/gameHistory';
+import { initPassport } from './passport';
+import { COOKIE_MAX_AGE } from './consts';
+
+const COOKIE_SECRET = process.env.COOKIE_SECRET;
+if (!COOKIE_SECRET) {
+  throw new Error('COOKIE_SECRET environment variable is required');
+}
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  : ['http://localhost:5173'];
 
 const app = express();
 
-dotenv.config();
 app.use(express.json());
 app.use(cookieParser());
 app.use(
   session({
-    secret: process.env.COOKIE_SECRET || 'keyboard cat',
+    secret: COOKIE_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: { secure: false, maxAge: COOKIE_MAX_AGE },
@@ -27,27 +35,23 @@ app.use(
 
 initPassport();
 app.use(passport.initialize());
-app.use(passport.authenticate('session'));
-
-const allowedHosts = process.env.ALLOWED_HOSTS
-  ? process.env.ALLOWED_HOSTS.split(',')
-  : [];
+app.use(passport.session());
 
 app.use(
   cors({
-    origin: true,
+    origin: allowedOrigins,
     methods: 'GET,POST,PUT,DELETE',
     credentials: true,
   }),
 );
 
+app.get('/health', (_req, res) => res.json({ ok: true }));
+
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/games', gameHistoryRoutes);
-
 app.use('/auth', authRoute);
-app.use('/v1', v1Router);
 
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server listening on port ${PORT}`);
 });

@@ -7,20 +7,15 @@ declare module 'js-chess-engine' {
     checkMate?: boolean;
     castling?: any;
     enPassant?: any;
-    board?: Record<string, string>; // Add this line
-    [key: string]: any; // Allow other properties
-  }
-
-  interface Move {
-    from: string;
-    to: string;
+    board?: Record<string, string>;
+    [key: string]: any;
   }
 
   export class Game {
     constructor(configuration?: GameConfiguration);
     move(from: string, to: string): void;
-    moves(square?: string): string[] | { [square: string]: string[] };
-    aiMove(level?: number): Move;
+    moves(square?: string): string[] | Record<string, string[]>;
+    aiMove(level?: number): Record<string, string>;
     exportJson(): GameConfiguration;
     setPiece(square: string, piece: string): void;
   }

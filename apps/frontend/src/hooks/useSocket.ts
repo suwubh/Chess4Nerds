@@ -8,21 +8,17 @@ export const useSocket = () => {
   const user = useUser();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.token) return;
+
     const ws = new WebSocket(`${WS_URL}?token=${user.token}`);
-
-    ws.onopen = () => {
-      setSocket(ws);
-    };
-
-    ws.onclose = () => {
-      setSocket(null);
-    };
+    ws.onopen = () => setSocket(ws);
+    ws.onclose = () => setSocket(null);
+    ws.onerror = (err) => console.error('WebSocket error:', err);
 
     return () => {
       ws.close();
     };
-  }, [user]);
+  }, [user?.token]);
 
   return socket;
 };

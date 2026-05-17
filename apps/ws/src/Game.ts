@@ -10,7 +10,7 @@ import { randomUUID } from 'crypto';
 import { socketManager } from './SocketManager';
 import { GameService } from './services/gameService';
 
-const GAME_TIME_MS = 10 * 60 * 60 * 1000;
+const GAME_TIME_MS = 10 * 60 * 1000;
 const gameService = new GameService();
 
 export function isPromoting(chess: Chess, from: Square, to: Square) {
@@ -72,7 +72,6 @@ export class Game {
         timeTaken: number | null;
         createdAt: Date;
     }[]) {
-        console.log(moves);
         moves.forEach((move) => {
             if (isPromoting(this.board, move.from as Square, move.to as Square)) {
                 this.board.move({
@@ -325,33 +324,23 @@ export class Game {
     }
 
     async endGame(status: GAME_STATUS, result: GAME_RESULT) {
+        this.result = result;
+
         const updatedGame = await db.game.update({
-            data: {
-                status,
-                result: result,
-            },
-            where: {
-                id: this.gameId,
-            },
+            data: { status, result },
+            where: { id: this.gameId },
             include: {
-                moves: {
-                    orderBy: {
-                        moveNumber: 'asc',
-                    },
-                },
+                moves: { orderBy: { moveNumber: 'asc' } },
                 blackPlayer: true,
                 whitePlayer: true,
-            }
+            },
         });
 
-        // Handle rating updates for completed games
         let ratingResult = null;
-        if (status === 'COMPLETED' || status === 'TIME_UP' || status === 'PLAYER_EXIT' || status === 'ABANDONED') {
-            try {
-                ratingResult = await gameService.completeGameWithRatings(this.gameId, result);
-            } catch (error) {
-                console.error('Failed to update ratings:', error);
-            }
+        try {
+            ratingResult = await gameService.completeGameWithRatings(this.gameId, result);
+        } catch (error) {
+            console.error('Failed to update ratings:', error);
         }
 
         socketManager.broadcast(
@@ -419,9 +408,5 @@ export class Game {
 
     clearTimer() {
         if (this.timer) clearTimeout(this.timer);
-    }
-
-    setTimer(timer: NodeJS.Timeout) {
-        this.timer = timer;
     }
 }
