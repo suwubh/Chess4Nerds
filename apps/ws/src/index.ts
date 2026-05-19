@@ -13,6 +13,18 @@ socketManager.init().catch((err) => {
   console.error('SocketManager init failed:', err);
 });
 
+// Periodic snapshot of in-flight games. Used by proof/loadtest-chess.js to
+// verify peak concurrent matches. Enable by setting METRICS_LOG=1.
+if (process.env.METRICS_LOG === '1') {
+  setInterval(() => {
+    const ts = new Date().toISOString();
+    console.log(
+      `metric ts=${ts} active_games=${gameManager.activeCount()} ` +
+        `ai_games=${gameManager.activeAICount()} queue=${gameManager.queueSize()}`,
+    );
+  }, 1000);
+}
+
 wss.on('connection', (ws, req) => {
   const { query } = url.parse(req.url || '', true);
   const token = typeof query.token === 'string' ? query.token : null;

@@ -68,6 +68,18 @@ export class GameManager {
     socketManager.removeRoom(gameId);
   }
 
+  activeCount() {
+    return this.games.length;
+  }
+
+  activeAICount() {
+    return this.aiGames.size;
+  }
+
+  queueSize() {
+    return this.matchmaker.size();
+  }
+
   private addHandler(user: User) {
     user.socket.on('message', async (data) => {
       const message = JSON.parse(data.toString());

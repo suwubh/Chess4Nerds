@@ -234,15 +234,16 @@ export class Game {
         }
 
         const moveTimestamp = new Date(Date.now());
+        let appliedMove: Move;
         try {
             if (isPromoting(this.board, move.from, move.to)) {
-                this.board.move({
+                appliedMove = this.board.move({
                     from: move.from,
                     to: move.to,
                     promotion: 'q',
                 });
             } else {
-                this.board.move({
+                appliedMove = this.board.move({
                     from: move.from,
                     to: move.to,
                 });
@@ -260,18 +261,20 @@ export class Game {
             this.player2TimeConsumed = this.player2TimeConsumed + (moveTimestamp.getTime() - this.lastMoveTime.getTime());
         }
 
-        await this.addMoveToDb(move, moveTimestamp);
-        this.resetAbandonTimer()
-        this.resetMoveTimer();
-        this.lastMoveTime = moveTimestamp;
-
         socketManager.broadcast(
             this.gameId,
             JSON.stringify({
                 type: MOVE,
-                payload: { move, player1TimeConsumed: this.player1TimeConsumed, player2TimeConsumed: this.player2TimeConsumed },
+                payload: { move: appliedMove, player1TimeConsumed: this.player1TimeConsumed, player2TimeConsumed: this.player2TimeConsumed },
             }),
         );
+
+        this.addMoveToDb(appliedMove, moveTimestamp).catch((err) => {
+            console.error('Failed to persist move:', err);
+        });
+        this.resetAbandonTimer();
+        this.resetMoveTimer();
+        this.lastMoveTime = moveTimestamp;
 
         if (this.board.isGameOver()) {
             const result = this.board.isDraw()
