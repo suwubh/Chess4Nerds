@@ -20,7 +20,14 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
   : ['http://localhost:5173'];
 
+const isProd = process.env.NODE_ENV === 'production';
+
 const app = express();
+
+if (isProd) {
+  // Render terminates TLS at its proxy; trust it so Secure cookies work.
+  app.set('trust proxy', 1);
+}
 
 app.use(express.json());
 app.use(cookieParser());
@@ -29,7 +36,11 @@ app.use(
     secret: COOKIE_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, maxAge: COOKIE_MAX_AGE },
+    cookie: {
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      maxAge: COOKIE_MAX_AGE,
+    },
   }),
 );
 

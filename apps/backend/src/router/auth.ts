@@ -14,6 +14,14 @@ if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required');
 }
 
+const isProd = process.env.NODE_ENV === 'production';
+const cookieOptions = {
+  maxAge: COOKIE_MAX_AGE,
+  httpOnly: true,
+  secure: isProd,
+  sameSite: isProd ? ('none' as const) : ('lax' as const),
+};
+
 interface UserJwtClaims {
   userId: string;
   name: string;
@@ -45,7 +53,7 @@ router.post('/guest', async (req: Request, res: Response) => {
     JWT_SECRET,
   );
 
-  res.cookie('guest', token, { maxAge: COOKIE_MAX_AGE });
+  res.cookie('guest', token, cookieOptions);
   res.json({
     id: user.id,
     name: user.name!,
@@ -70,7 +78,7 @@ router.get('/refresh', async (req: Request, res: Response) => {
         { userId: decoded.userId, name: decoded.name, isGuest: true },
         JWT_SECRET,
       );
-      res.cookie('guest', token, { maxAge: COOKIE_MAX_AGE });
+      res.cookie('guest', token, cookieOptions);
       res.json({
         id: decoded.userId,
         name: decoded.name,
