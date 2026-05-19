@@ -9,26 +9,34 @@ A real-time multiplayer chess platform built as a TypeScript monorepo.
 ## Overview
 
 Chess4Nerds lets two players play chess online over WebSockets. It includes
-guest play, OAuth login (Google / GitHub), an Elo-based rating system,
-per-player stats, a global leaderboard, game history, and a local engine for
-playing against the computer.
+guest play, OAuth login (Google / GitHub), Elo-based ratings and matchmaking,
+per-player stats, a global leaderboard, game history, and a single-player mode
+against a minimax engine.
 
 ## Features
 
-- Real-time multiplayer over WebSockets (chess.js for validation)
+- Real-time multiplayer over WebSockets, with server-authoritative move
+  validation via chess.js
+- Elo-band matchmaking (±100 rating, widens with wait time) and Elo updates
+  after each completed game (K=32 standard, 40 provisional, 10 for 2100+)
+- Optional Redis pub/sub for cross-replica broadcasts so the WS layer can be
+  horizontally scaled
+- Single-player mode against an in-house minimax + alpha-beta engine with
+  MVV-LVA move ordering, piece-square evaluation, and easy/medium/hard
+  difficulty (search depth 2/3/4)
 - Guest accounts and OAuth login (Google / GitHub) via Passport
-- Elo rating updates after each completed game
-- Leaderboard and per-player stats / game history
-- Single-player mode against `js-chess-engine` with adjustable difficulty
+- Leaderboard, per-player stats and game history
 - Resign and draw-offer flows, in-game chat, board themes
 
 ## Tech stack
 
 - **Frontend** — React 18, Vite, TypeScript, Tailwind CSS, Recoil, chess.js
 - **Backend** — Node.js, Express, Passport (Google / GitHub OAuth), JWT
-- **WebSocket server** — `ws`, JWT auth, chess.js for server-side validation
+- **WebSocket server** — `ws`, JWT auth, chess.js validation, in-house
+  minimax engine, optional Redis pub/sub for multi-replica setups
 - **Database** — PostgreSQL via Prisma
 - **Monorepo** — Turborepo with shared `db`, `store`, `ui` packages
+- **CI** — GitHub Actions (Prisma schema validate, builds, tests)
 
 ## Repository layout
 
@@ -115,6 +123,11 @@ DATABASE_URL="postgresql://user:password@localhost:5432/chess4nerds"
 JWT_SECRET="change-me"
 
 WS_PORT=8080
+
+# Optional. When set, the WS server publishes every room broadcast through
+# Redis so additional ws replicas can re-broadcast to their own clients. Leave
+# unset for single-node setups.
+# REDIS_URL="redis://localhost:6379"
 ```
 
 ### `apps/frontend/.env`
@@ -145,20 +158,32 @@ Individual apps also expose their own `dev` / `build` scripts (see each
 - The **frontend** maintains a Recoil-backed `user` atom whose default selector
   hits `/auth/refresh` to restore a logged-in or guest user from cookies.
 - The **WebSocket server** authenticates every connection using the JWT issued
-  by the backend. The `GameManager` matches the first waiting player with the
-  next incoming one, creating a `Game` instance per match.
+  by the backend. The `GameManager` queues players in a rating-aware
+  matchmaker (`apps/ws/src/matchmaking.ts`) that pairs opponents within ±100
+  Elo and widens the band the longer a player waits.
 - Each `Game` keeps a `chess.js` board, persists moves to Postgres, and emits
   events (`init_game`, `move`, `game_ended`, etc.) back to both players.
-- When a game ends, ratings are recomputed via the Elo formula and the
-  leaderboard / per-player stats reflect the change immediately.
+- Single-player games use an in-memory `AIGame` (`apps/ws/src/AIGame.ts`)
+  driven by the minimax engine in `apps/ws/src/ai/minimax.ts`. The engine
+  uses alpha-beta pruning with MVV-LVA move ordering and piece-square-table
+  evaluation. Search depth is selected by difficulty (easy = 2, medium = 3,
+  hard = 4). AI games are never written to the DB and don't affect ratings.
+- When a multiplayer game ends, ratings are recomputed via the Elo formula and
+  the leaderboard / per-player stats reflect the change immediately.
+- For horizontal scaling, setting `REDIS_URL` enables a pub/sub layer
+  (`apps/ws/src/pubsub.ts`) so multiple WS replicas behind a sticky load
+  balancer can serve the same set of game rooms. See `proof/` for a docker
+  compose + nginx + k6 setup used to benchmark single-node vs 2-replica
+  throughput.
 
 ## Roadmap
 
 - [x] Real-time multiplayer
 - [x] Google / GitHub OAuth
 - [x] Leaderboard + match history
-- [x] Elo ratings
-- [x] Computer opponent
+- [x] Elo ratings + Elo-band matchmaking
+- [x] Computer opponent (minimax + alpha-beta)
+- [x] Horizontally scalable WS layer (Redis pub/sub)
 - [ ] Tournaments
 - [ ] Game replay / analysis
 - [ ] Spectator mode

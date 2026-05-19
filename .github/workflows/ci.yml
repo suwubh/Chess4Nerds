@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Validate Prisma schema
+        working-directory: packages/db
+        run: npx prisma validate
+
+      - name: Generate Prisma client
+        working-directory: packages/db
+        run: npx prisma generate
+
+      - name: Build WebSocket server
+        working-directory: apps/ws
+        run: npx esbuild ./src/index.ts --bundle --platform=node --outfile=dist/index.js --external:redis
+
+      - name: Build backend
+        working-directory: apps/backend
+        run: npm run build
+
+      - name: Test (ws / minimax)
+        working-directory: apps/ws
+        run: npm test

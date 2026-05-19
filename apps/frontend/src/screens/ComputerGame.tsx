@@ -1,43 +1,33 @@
-import { useEffect, useState } from 'react';
-import { Game as ChessEngine } from 'js-chess-engine';
-import { Chess } from 'chess.js';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Chess, Square } from 'chess.js';
 import { useRecoilState } from 'recoil';
 
-import { ChessBoard } from '@/components/ChessBoard';
+import { ChessBoard, isPromoting } from '@/components/ChessBoard';
+import { useSocket } from '@/hooks/useSocket';
 import { useThemeContext } from '@/hooks/useThemes';
 import { movesAtom } from '@repo/store/src/atoms/chessBoard';
 
 type Color = 'w' | 'b';
 type ColorChoice = Color | 'random';
+type Difficulty = 'easy' | 'medium' | 'hard';
+type Status = 'idle' | 'playing' | 'checkmate' | 'draw';
 
-const DIFFICULTIES = [
-  { value: 0, label: 'Beginner' },
-  { value: 1, label: 'Easy' },
-  { value: 2, label: 'Medium' },
-  { value: 3, label: 'Hard' },
-  { value: 4, label: 'Expert' },
+const INIT_COMPUTER_GAME = 'init_computer_game';
+const COMPUTER_GAME_STARTED = 'computer_game_started';
+const COMPUTER_MOVE = 'computer_move';
+const COMPUTER_GAME_ENDED = 'computer_game_ended';
+
+const DIFFICULTIES: { value: Difficulty; label: string }[] = [
+  { value: 'easy', label: 'Easy' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'hard', label: 'Hard' },
 ];
 
 const colorLabel = (c: ColorChoice) =>
   c === 'w' ? 'White' : c === 'b' ? 'Black' : 'Random';
 
-const computeEngineMove = (history: { from: string; to: string }[], level: number) => {
-  const engine = new ChessEngine();
-  for (const move of history) {
-    try {
-      engine.move(move.from.toUpperCase(), move.to.toUpperCase());
-    } catch (err) {
-      console.error('Engine sync error:', err);
-    }
-  }
-  const result = engine.aiMove(level);
-  if (!result || typeof result !== 'object') return null;
-  const [fromKey] = Object.keys(result);
-  if (!fromKey) return null;
-  return { from: fromKey.toLowerCase(), to: result[fromKey].toLowerCase() };
-};
-
 export const ComputerGame = () => {
+  const socket = useSocket();
   const [chess] = useState(() => new Chess());
   const [board, setBoard] = useState(chess.board());
   const [, setMoves] = useRecoilState(movesAtom);
@@ -45,76 +35,127 @@ export const ComputerGame = () => {
 
   const [selectedColor, setSelectedColor] = useState<ColorChoice>('w');
   const [myColor, setMyColor] = useState<Color>('w');
-  const [difficulty, setDifficulty] = useState(2);
-  const [isThinking, setIsThinking] = useState(false);
-  const [gameStatus, setGameStatus] = useState<'playing' | 'checkmate' | 'draw'>('playing');
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+  const [status, setStatus] = useState<Status>('idle');
+  const [thinking, setThinking] = useState(false);
+  const [gameId, setGameId] = useState<string | null>(null);
 
-  const makeComputerMove = () => {
-    if (chess.isGameOver()) return;
-    setIsThinking(true);
+  const gameIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    gameIdRef.current = gameId;
+  }, [gameId]);
 
-    setTimeout(() => {
-      try {
-        const aiMove = computeEngineMove(chess.history({ verbose: true }), difficulty);
-        if (!aiMove) return;
-
-        const move = chess.move(aiMove);
-        if (!move) return;
-
-        setBoard(chess.board());
-        setMoves((prev) => [...prev, move]);
-
-        if (chess.isGameOver()) {
-          setGameStatus(chess.isCheckmate() ? 'checkmate' : 'draw');
-        }
-      } catch (err) {
-        console.error('Computer move error:', err);
-      } finally {
-        setIsThinking(false);
-      }
-    }, 800 + difficulty * 200);
+  const requestNewGame = (colorChoice: ColorChoice, level: Difficulty) => {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    socket.send(
+      JSON.stringify({
+        type: INIT_COMPUTER_GAME,
+        payload: { color: colorChoice, difficulty: level },
+      }),
+    );
   };
-
-  const resetGame = () => {
-    chess.reset();
-    setBoard(chess.board());
-    setMoves([]);
-    setGameStatus('playing');
-    setIsThinking(false);
-
-    const newColor: Color =
-      selectedColor === 'random' ? (Math.random() > 0.5 ? 'w' : 'b') : selectedColor;
-    setMyColor(newColor);
-
-    if (newColor === 'b') {
-      setTimeout(makeComputerMove, 500);
-    }
-  };
-
-  // ChessBoard sends moves via socket.send; intercept it to trigger the engine
-  const localSocket = {
-    send: (data: string) => {
-      try {
-        const parsed = JSON.parse(data);
-        if (parsed?.type === 'move') {
-          setTimeout(makeComputerMove, 400);
-        }
-      } catch {
-        /* ignore */
-      }
-    },
-  } as unknown as WebSocket;
 
   useEffect(() => {
-    resetGame();
+    if (!socket) return;
+
+    const onMessage = (event: MessageEvent) => {
+      let msg: { type?: string; payload?: any };
+      try {
+        msg = JSON.parse(event.data);
+      } catch {
+        return;
+      }
+
+      if (msg.type === COMPUTER_GAME_STARTED) {
+        const { gameId: newGameId, playerColor } = msg.payload ?? {};
+        chess.reset();
+        setBoard(chess.board());
+        setMoves([]);
+        setGameId(newGameId);
+        setMyColor(playerColor === 'b' ? 'b' : 'w');
+        setStatus('playing');
+        setThinking(playerColor === 'b');
+        return;
+      }
+
+      if (msg.type === COMPUTER_MOVE) {
+        const move = msg.payload?.move;
+        if (!move?.from || !move?.to) return;
+        try {
+          if (isPromoting(chess, move.from as Square, move.to as Square)) {
+            chess.move({ from: move.from, to: move.to, promotion: move.promotion ?? 'q' });
+          } else {
+            chess.move({ from: move.from, to: move.to });
+          }
+          setBoard(chess.board());
+          setMoves((prev) => [...prev, chess.history({ verbose: true }).slice(-1)[0]]);
+        } catch (err) {
+          console.error('Failed to apply computer move:', err);
+        }
+        setThinking(false);
+
+        if (chess.isGameOver()) {
+          setStatus(chess.isCheckmate() ? 'checkmate' : 'draw');
+        }
+        return;
+      }
+
+      if (msg.type === COMPUTER_GAME_ENDED) {
+        setThinking(false);
+        const result = msg.payload?.result;
+        setStatus(result === 'DRAW' ? 'draw' : 'checkmate');
+        return;
+      }
+    };
+
+    socket.addEventListener('message', onMessage);
+    return () => socket.removeEventListener('message', onMessage);
+  }, [socket, chess, setMoves]);
+
+  useEffect(() => {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    if (status !== 'idle') return;
+    requestNewGame(selectedColor, difficulty);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [socket?.readyState]);
+
+  const handleNewGame = () => {
+    setStatus('idle');
+    requestNewGame(selectedColor, difficulty);
+  };
+
+  // Proxy the socket so the player's move flips us into "thinking" before the
+  // engine's reply lands.
+  const wrappedSocket = useMemo(() => {
+    if (!socket) return null;
+    return new Proxy(socket, {
+      get(target, prop) {
+        if (prop === 'send') {
+          return (data: string) => {
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed?.type === 'move' && gameIdRef.current) {
+                setThinking(true);
+              }
+            } catch {
+              /* not JSON */
+            }
+            target.send(data);
+          };
+        }
+        const value = Reflect.get(target, prop);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+  }, [socket]);
 
   const themeText = theme === 'pink' ? 'text-pink-400' : 'text-[#9A9484]';
   const themeBtn =
     theme === 'pink'
       ? 'bg-pink-300 hover:bg-pink-400'
       : 'bg-[#9A9484] hover:bg-[#8B8570]';
+
+  const ready = !!socket && socket.readyState === WebSocket.OPEN && wrappedSocket;
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
@@ -130,7 +171,7 @@ export const ComputerGame = () => {
           <select
             value={selectedColor}
             onChange={(e) => setSelectedColor(e.target.value as ColorChoice)}
-            disabled={isThinking}
+            disabled={thinking}
             className="px-3 py-1 rounded border text-black"
           >
             <option value="w">White</option>
@@ -143,8 +184,8 @@ export const ComputerGame = () => {
           <label className="font-medium">Difficulty:</label>
           <select
             value={difficulty}
-            onChange={(e) => setDifficulty(Number(e.target.value))}
-            disabled={isThinking}
+            onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+            disabled={thinking}
             className="px-3 py-1 rounded border text-black"
           >
             {DIFFICULTIES.map((d) => (
@@ -156,15 +197,18 @@ export const ComputerGame = () => {
         </div>
 
         <div className="text-center">
-          {isThinking && (
+          {!ready && (
+            <p className="text-gray-500 animate-pulse">Connecting to engine...</p>
+          )}
+          {thinking && ready && (
             <p className="text-blue-500 animate-pulse font-bold">
               Computer is thinking...
             </p>
           )}
-          {gameStatus === 'checkmate' && (
+          {status === 'checkmate' && (
             <p className="text-red-500 font-bold">Game over - Checkmate</p>
           )}
-          {gameStatus === 'draw' && (
+          {status === 'draw' && (
             <p className="text-yellow-500 font-bold">Game drawn</p>
           )}
           <p className="text-sm text-gray-400">Total moves: {chess.history().length}</p>
@@ -174,14 +218,14 @@ export const ComputerGame = () => {
       <div className="relative">
         <ChessBoard
           myColor={myColor}
-          gameId="computer-vs-human"
-          started
+          gameId={gameId ?? 'computer-pending'}
+          started={status === 'playing'}
           chess={chess}
           board={board}
           setBoard={setBoard}
-          socket={localSocket}
+          socket={(wrappedSocket ?? socket) as WebSocket}
         />
-        {isThinking && (
+        {thinking && (
           <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center rounded">
             <div className="bg-white px-4 py-2 rounded shadow-lg">
               <span className="text-black font-medium">Computer thinking...</span>
@@ -192,15 +236,15 @@ export const ComputerGame = () => {
 
       <div className="flex flex-col items-center gap-2">
         <button
-          onClick={resetGame}
-          disabled={isThinking}
+          onClick={handleNewGame}
+          disabled={thinking || !ready}
           className={`px-6 py-2 rounded font-medium text-white transition-colors ${themeBtn} ${
-            isThinking ? 'opacity-50 cursor-not-allowed' : ''
+            thinking || !ready ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
           New Game
         </button>
-        {selectedColor !== 'random' && selectedColor !== myColor && gameStatus === 'playing' && (
+        {selectedColor !== 'random' && selectedColor !== myColor && status === 'playing' && (
           <span className="text-xs text-gray-500">
             Next game: you'll play as {colorLabel(selectedColor)}
           </span>

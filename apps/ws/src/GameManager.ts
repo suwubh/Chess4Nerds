@@ -6,7 +6,6 @@ import {
   JOIN_ROOM,
   GAME_JOINED,
   GAME_NOT_FOUND,
-  GAME_ALERT,
   GAME_ADDED,
   GAME_ENDED,
   EXIT_GAME,
@@ -16,8 +15,12 @@ import {
   DRAW_REQUEST,
   DRAW_RESPONSE,
   DRAW_REQUEST_RECEIVED,
+  INIT_COMPUTER_GAME,
 } from './messages';
 import { Game } from './Game';
+import { AIGame } from './AIGame';
+import { Difficulty } from './ai/minimax';
+import { Matchmaker } from './matchmaking';
 import { db } from './db';
 import { socketManager } from './SocketManager';
 
@@ -25,14 +28,17 @@ export class GameManager {
 
   private games: Game[];
 
-  private pendingGameId: string | null;
-
   private users: User[];
+
+  private aiGames: Map<string, AIGame>;
+
+  private matchmaker: Matchmaker;
 
   constructor() {
     this.games = [];
-    this.pendingGameId = null;
     this.users = [];
+    this.aiGames = new Map();
+    this.matchmaker = new Matchmaker();
   }
 
   addUser(user: User) {
@@ -48,6 +54,13 @@ export class GameManager {
     }
     this.users = this.users.filter((u) => u.userId !== user.userId);
     socketManager.removeUser(user);
+    this.matchmaker.remove(user.userId);
+
+    for (const [gameId, game] of this.aiGames) {
+      if (game.user.userId === user.userId) {
+        this.aiGames.delete(gameId);
+      }
+    }
   }
 
   removeGame(gameId: string) {
@@ -60,29 +73,12 @@ export class GameManager {
       const message = JSON.parse(data.toString());
 
       if (message.type === INIT_GAME) {
-        if (this.pendingGameId) {
-          const game = this.games.find((x) => x.gameId === this.pendingGameId);
-          if (!game) {
-            console.error('Pending game not found?');
-            return;
-          }
-          if (user.userId === game.player1UserId) {
-            socketManager.broadcast(
-              game.gameId,
-              JSON.stringify({
-                type: GAME_ALERT,
-                payload: { message: 'Trying to Connect with yourself?' },
-              }),
-            );
-            return;
-          }
-          socketManager.addUser(user, game.gameId);
-          await game?.updateSecondPlayer(user.userId);
-          this.pendingGameId = null;
-        } else {
-          const game = new Game(user.userId, null);
+        const match = await this.matchmaker.enqueue(user);
+        if ('opponent' in match) {
+          const opponent = match.opponent;
+          const game = new Game(opponent.userId, null);
           this.games.push(game);
-          this.pendingGameId = game.gameId;
+          socketManager.addUser(opponent, game.gameId);
           socketManager.addUser(user, game.gameId);
           socketManager.broadcast(
             game.gameId,
@@ -91,12 +87,52 @@ export class GameManager {
               gameId: game.gameId,
             }),
           );
+          await game.updateSecondPlayer(user.userId);
+        } else {
+          user.socket.send(
+            JSON.stringify({
+              type: GAME_ADDED,
+              gameId: null,
+            }),
+          );
         }
+        return;
+      }
+
+      if (message.type === INIT_COMPUTER_GAME) {
+        const colorChoice = message.payload?.color ?? 'w';
+        const playerColor: 'w' | 'b' =
+          colorChoice === 'random'
+            ? Math.random() < 0.5
+              ? 'w'
+              : 'b'
+            : colorChoice;
+
+        const requested = message.payload?.difficulty;
+        const difficulty: Difficulty =
+          requested === 'easy' || requested === 'medium' || requested === 'hard'
+            ? requested
+            : 'medium';
+
+        const aiGame = new AIGame(user, playerColor, difficulty);
+        this.aiGames.set(aiGame.gameId, aiGame);
+        aiGame.start();
         return;
       }
 
       if (message.type === MOVE) {
         const gameId = message.payload.gameId;
+
+        const aiGame = this.aiGames.get(gameId);
+        if (aiGame) {
+          const move = message.payload.move ?? {};
+          aiGame.handleMove(move.from, move.to, move.promotion);
+          if (aiGame.isOver()) {
+            this.aiGames.delete(gameId);
+          }
+          return;
+        }
+
         const game = this.games.find((game) => game.gameId === gameId);
         if (game) {
           await game.makeMove(user, message.payload.move);

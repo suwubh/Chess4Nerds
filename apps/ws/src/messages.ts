@@ -19,3 +19,8 @@ export const RESIGN_GAME = 'resign_game';
 export const DRAW_REQUEST = 'draw_request';
 export const DRAW_RESPONSE = 'draw_response';
 export const DRAW_REQUEST_RECEIVED = 'draw_request_received';
+
+export const INIT_COMPUTER_GAME = 'init_computer_game';
+export const COMPUTER_GAME_STARTED = 'computer_game_started';
+export const COMPUTER_MOVE = 'computer_move';
+export const COMPUTER_GAME_ENDED = 'computer_game_ended';

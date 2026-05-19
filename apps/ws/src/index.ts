@@ -3,10 +3,15 @@ import url from 'url';
 import { WebSocketServer } from 'ws';
 import { GameManager } from './GameManager';
 import { extractAuthUser } from './auth';
+import { socketManager } from './SocketManager';
 
 const PORT = Number(process.env.WS_PORT) || 8080;
 const wss = new WebSocketServer({ port: PORT });
 const gameManager = new GameManager();
+
+socketManager.init().catch((err) => {
+  console.error('SocketManager init failed:', err);
+});
 
 wss.on('connection', (ws, req) => {
   const { query } = url.parse(req.url || '', true);
