@@ -9,7 +9,7 @@
     "turbo": "latest"
   },
   "engines": {
-    "node": ">=18 <24"
+    "node": "20.x"
   },
   "packageManager": "npm@10.9.3",
   "workspaces": [
