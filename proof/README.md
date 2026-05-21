@@ -1,103 +1,48 @@
-# Benchmarks
+# Load test
 
-Two-replica WebSocket throughput vs single-node baseline. Replicas share
-game-broadcast state through Redis pub/sub.
+A [k6](https://k6.io) harness that drives the WebSocket server with many
+concurrent games and measures move-propagation latency.
 
-## Prereqs
+`loadtest-chess.js` mints one guest token per virtual user via
+`POST /auth/guest`, connects each VU to the WS server, pairs them through
+matchmaking, and plays a short opening line — timing the round trip from a
+client's `move` send to the broadcast it receives back.
 
-- Docker Desktop running (used for Redis + nginx)
-- [`k6`](https://k6.io/docs/get-started/installation/) on PATH
-- The full repo dev environment working (`npm run dev` from the repo root)
+## Prerequisites
 
-The WS replicas run natively on the host so they pick up the workspace
-packages without dockerization. nginx (in Docker) reverse-proxies to them via
-`host.docker.internal`. The backend stays up too — `loadtest-chess.js` calls
-`POST /auth/guest` to mint a unique JWT per VU.
+- The backend and WS server running (`npm run dev` from the repo root works).
+- [`k6`](https://k6.io/docs/get-started/installation/) on your PATH.
 
-## 1. Build the WS bundle
+## Run it
 
-```powershell
-cd apps\ws
-npm run build
-cd ..\..
-```
-
-## 2. Start Redis + nginx
-
-```powershell
-docker compose -f proof\docker-compose.bench.yml up -d
-```
-
-## 3. Single-node baseline
-
-`cd` into `apps\ws` first — Prisma's native query engine resolves relative to
-cwd. Then start a single ws replica on port 8081:
-
-```powershell
-cd apps\ws
-$env:WS_PORT = "8081"
-$env:REDIS_URL = "redis://localhost:6379"
-$env:JWT_SECRET = "<same value as apps\ws\.env>"
-$env:DATABASE_URL = "<same value as apps\ws\.env>"
-node dist\index.js
-```
-
-In a second window (from the repo root), run k6:
+Start the backend with `RATE_LIMIT_DISABLED=true` so `setup()` can mint guest
+tokens in bulk, then run k6 against the WS server:
 
 ```powershell
 $env:BACKEND_URL = "http://localhost:3000"
 $env:WS_URL = "ws://localhost:8080"
-k6 run --out json=proof\single-node.json proof\loadtest-chess.js | Tee-Object proof\single-node.txt
+k6 run --vus 220 --duration 60s proof/loadtest-chess.js
 ```
 
-Note the `chess_moves_played` value. `Ctrl+C` the replica.
+The script defaults (20 VUs / 30s) are fine for a quick check; the headline
+numbers below come from the 220-VU / 60s run.
 
-## 4. Two-replica run
+## Results
 
-Replica 1 (from `apps\ws`):
+`concurrency.txt` is the saved output of a 220-VU, 60-second run against a
+single WS replica:
 
-```powershell
-cd apps\ws
-$env:WS_PORT = "8081"
-$env:REDIS_URL = "redis://localhost:6379"
-$env:JWT_SECRET = "<same>"
-$env:DATABASE_URL = "<same>"
-node dist\index.js
-```
+| Metric                        | Value        |
+| ----------------------------- | ------------ |
+| Concurrent games (peak)       | ~110         |
+| Moves processed               | 305 / sec    |
+| Move-propagation latency (p95) | 112 ms       |
+| Failed checks                 | 0            |
 
-Replica 2 (also from `apps\ws`, second window):
+## Scope
 
-```powershell
-cd apps\ws
-$env:WS_PORT = "8082"
-$env:REDIS_URL = "redis://localhost:6379"
-$env:JWT_SECRET = "<same>"
-$env:DATABASE_URL = "<same>"
-node dist\index.js
-```
-
-Both should log `Redis pub/sub connected`. Third window for k6:
-
-```powershell
-$env:BACKEND_URL = "http://localhost:3000"
-$env:WS_URL = "ws://localhost:8080"
-k6 run --out json=proof\multi-node.json proof\loadtest-chess.js | Tee-Object proof\multi-node.txt
-```
-
-## 5. Compute the ratio
-
-`multi-node` ÷ `single-node` = the throughput multiplier.
-
-If both numbers look equal, nginx is probably pinning everything to one
-replica via `ip_hash` (every k6 VU comes from `127.0.0.1`). Swap to plain
-round-robin in `nginx.conf` and restart nginx:
-
-```powershell
-docker compose -f proof\docker-compose.bench.yml restart nginx
-```
-
-## 6. Tear down
-
-```powershell
-docker compose -f proof\docker-compose.bench.yml down
-```
+The WS server keeps game state and the matchmaking queue in memory, so this
+harness load-tests a **single replica**. Setting `REDIS_URL` adds a pub/sub
+broadcast relay (see the main README's "Scaling notes"), but running multiple
+replicas correctly would also need shared matchmaking and game state — so there
+is intentionally no multi-replica throughput comparison here.

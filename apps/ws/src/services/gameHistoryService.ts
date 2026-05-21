@@ -1,4 +1,4 @@
-import { GameResult } from '@prisma/client';
+import { GameResult, GameStatus } from '@prisma/client';
 import { db } from '../db';
 
 type PlayerColor = 'white' | 'black';
@@ -15,6 +15,7 @@ interface SaveGameInput {
   whitePlayerId: string;
   blackPlayerId: string;
   result: GameResult;
+  status: GameStatus;
   whiteRatingBefore: number;
   blackRatingBefore: number;
   whiteRatingAfter: number;
@@ -35,7 +36,7 @@ export class GameHistoryService {
           blackRatingAfter: input.blackRatingAfter,
           totalMoves: input.totalMoves,
           gameDurationSeconds: input.gameDurationSeconds,
-          status: 'COMPLETED',
+          status: input.status,
           result: input.result,
           endAt: new Date(),
         },

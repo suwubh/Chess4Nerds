@@ -203,6 +203,48 @@ export function pickBestMove(fen: string, depth: number): Move | null {
   return result.move ?? null;
 }
 
-export function pickAIMove(fen: string, difficulty: Difficulty = 'medium'): Move | null {
-  return pickBestMove(fen, DEPTH_BY_DIFFICULTY[difficulty]);
+// Async variant used by live AI games. It runs the same alpha-beta search but
+// yields to the event loop between root moves, so a deep search never blocks
+// other games' WebSocket messages for longer than a single subtree.
+export async function pickAIMove(
+  fen: string,
+  difficulty: Difficulty = 'medium',
+): Promise<Move | null> {
+  const chess = new Chess(fen);
+  if (chess.isGameOver()) return null;
+
+  const depth = DEPTH_BY_DIFFICULTY[difficulty];
+  const maximizing = chess.turn() === 'w';
+  const moves = orderMoves(chess);
+  if (moves.length === 0) return null;
+
+  let bestMove: Move = moves[0];
+  let bestScore = maximizing ? -Infinity : Infinity;
+  let alpha = -Infinity;
+  let beta = Infinity;
+
+  for (const move of moves) {
+    chess.move(move.san);
+    const { score } = minimax(chess, depth - 1, alpha, beta, !maximizing);
+    chess.undo();
+
+    if (maximizing) {
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = move;
+      }
+      alpha = Math.max(alpha, bestScore);
+    } else {
+      if (score < bestScore) {
+        bestScore = score;
+        bestMove = move;
+      }
+      beta = Math.min(beta, bestScore);
+    }
+
+    // Hand control back to the event loop before searching the next subtree.
+    await new Promise<void>((resolve) => setImmediate(resolve));
+  }
+
+  return bestMove;
 }

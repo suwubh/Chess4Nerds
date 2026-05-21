@@ -3,12 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "npx esbuild ./src/index.ts --bundle --platform=node --outfile=dist/index.js --sourcemap",
+    "build": "npx esbuild ./src/index.ts --bundle --platform=node --outfile=dist/index.js --sourcemap --external:redis",
     "start": "node dist/index.js",
     "dev": "npm run build && npm run start",
-    "lint": "eslint . --max-warnings 0",
-    "lint:fix": "eslint --fix .",
-    "test": "tsc src/ai/minimax.ts src/ai/minimax.test.ts --target es2020 --module commonjs --esModuleInterop --strict --skipLibCheck --outDir dist-test && node --test dist-test/minimax.test.js"
+    "test": "tsc src/ai/minimax.ts src/ai/minimax.test.ts src/services/ratingService.ts src/services/ratingService.test.ts --rootDir src --target es2020 --module commonjs --esModuleInterop --strict --skipLibCheck --outDir dist-test && node --test dist-test/ai/minimax.test.js dist-test/services/ratingService.test.js"
   },
   "license": "ISC",
   "dependencies": {

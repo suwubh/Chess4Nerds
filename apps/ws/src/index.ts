@@ -5,6 +5,14 @@ import { GameManager } from './GameManager';
 import { extractAuthUser } from './auth';
 import { socketManager } from './SocketManager';
 
+// Safety net: log stray errors instead of letting one bad request crash the server.
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+});
+
 const PORT = Number(process.env.WS_PORT) || 8080;
 const wss = new WebSocketServer({ port: PORT });
 const gameManager = new GameManager();

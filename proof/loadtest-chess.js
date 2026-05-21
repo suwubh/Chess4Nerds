@@ -1,10 +1,9 @@
 // k6 load test for the WS server. setup() mints one guest token per VU via
 // POST /auth/guest, then each VU connects, gets paired, and plays a short
-// opening line. Run once vs single-node and once vs 2 replicas, compare
-// chess_moves_played.
+// opening line, measuring move-propagation latency.
 //
 //   BACKEND_URL=http://localhost:3000 WS_URL=ws://localhost:8080 \
-//     k6 run --vus 20 --duration 30s proof/loadtest-chess.js
+//     k6 run --vus 220 --duration 60s proof/loadtest-chess.js
 
 import http from 'k6/http';
 import ws from 'k6/ws';

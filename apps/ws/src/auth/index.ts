@@ -8,6 +8,10 @@ if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required');
 }
 
+if (JWT_SECRET === 'your_jwt_secret') {
+  console.warn('⚠️  JWT_SECRET is set to the example placeholder — use a strong, unique value.');
+}
+
 export interface UserJwtClaims {
   userId: string;
   name?: string;
@@ -17,7 +21,8 @@ export interface UserJwtClaims {
 }
 
 export function extractAuthUser(token: string, ws: WebSocket): User {
-  const decoded = jwt.verify(token, JWT_SECRET) as UserJwtClaims;
+  // JWT_SECRET is guaranteed defined by the check above; `!` tells the compiler.
+  const decoded = jwt.verify(token, JWT_SECRET!) as unknown as UserJwtClaims;
   return {
     userId: decoded.userId,
     socket: ws,

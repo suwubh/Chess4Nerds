@@ -29,7 +29,7 @@ export class AIGame {
     this.board = new Chess();
   }
 
-  start() {
+  async start() {
     this.send(COMPUTER_GAME_STARTED, {
       gameId: this.gameId,
       playerColor: this.playerColor,
@@ -38,11 +38,11 @@ export class AIGame {
     });
 
     if (this.playerColor === 'b') {
-      this.playAIMove();
+      await this.playAIMove();
     }
   }
 
-  handleMove(from: string, to: string, promotion?: string) {
+  async handleMove(from: string, to: string, promotion?: string) {
     if (this.over) return;
     if (this.board.turn() !== this.playerColor) return;
 
@@ -57,11 +57,11 @@ export class AIGame {
     }
 
     if (this.checkGameOver()) return;
-    this.playAIMove();
+    await this.playAIMove();
   }
 
-  private playAIMove() {
-    const move = pickAIMove(this.board.fen(), this.difficulty);
+  private async playAIMove() {
+    const move = await pickAIMove(this.board.fen(), this.difficulty);
     if (!move) {
       this.checkGameOver();
       return;

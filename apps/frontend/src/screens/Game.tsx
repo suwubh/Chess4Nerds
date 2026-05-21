@@ -20,16 +20,10 @@ import { ShareGame } from '../components/ShareGame';
 
 export const INIT_GAME = 'init_game';
 export const MOVE = 'move';
-export const OPPONENT_DISCONNECTED = 'opponent_disconnected';
-export const GAME_OVER = 'game_over';
 export const JOIN_ROOM = 'join_room';
 export const GAME_JOINED = 'game_joined';
-export const GAME_ALERT = 'game_alert';
 export const GAME_ADDED = 'game_added';
-export const USER_TIMEOUT = 'user_timeout';
-export const GAME_TIME = 'game_time';
 export const GAME_ENDED = 'game_ended';
-export const EXIT_GAME = 'exit_game';
 
 export const RESIGN_GAME = 'resign_game';
 export const DRAW_REQUEST = 'draw_request';
@@ -101,9 +95,9 @@ export const Game = () => {
 
   useEffect(() => {
     if (!user) {
-      window.location.href = '/login';
+      navigate('/login');
     }
-  }, [user]);
+  }, [user, navigate]);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -118,7 +112,7 @@ export const Game = () => {
       switch (message.type) {
         case GAME_ADDED:
           setAdded(true);
-          setGameID((p) => message.gameId);
+          setGameID(message.gameId);
           break;
 
         case INIT_GAME:
@@ -156,33 +150,14 @@ export const Game = () => {
           }
           break;
 
-        case GAME_OVER:
-          setResult(message.payload.result);
-          break;
-
         case GAME_ENDED:
-          let wonBy;
-          switch (message.payload.status) {
-            case 'COMPLETED':
-              wonBy = message.payload.result !== 'DRAW' ? 'CheckMate' : 'Draw';
-              break;
-            case 'PLAYER_EXIT':
-              wonBy = 'Player Exit';
-              break;
-            default:
-              wonBy = 'Timeout';
-          }
           setResult({
             result: message.payload.result,
-            by: wonBy,
+            by: message.payload.reason ?? 'Game Over',
           });
           chess.reset();
           setStarted(false);
           setAdded(false);
-          break;
-
-        case USER_TIMEOUT:
-          setResult(message.payload.win);
           break;
 
         case GAME_JOINED:
@@ -201,11 +176,6 @@ export const Game = () => {
             }
           });
           setMoves(message.payload.moves);
-          break;
-
-        case GAME_TIME:
-          setPlayer1TimeConsumed(message.payload.player1Time);
-          setPlayer2TimeConsumed(message.payload.player2Time);
           break;
 
         case CHAT_MESSAGE:
