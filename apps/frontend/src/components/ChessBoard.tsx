@@ -1,4 +1,4 @@
-import { Chess, Color, Move, PieceSymbol, Square } from 'chess.js';
+import { Chess, Color, PieceSymbol, Square } from 'chess.js';
 import { MouseEvent, memo, useEffect, useState } from 'react';
 import { MOVE } from '../screens/Game';
 import LetterNotation from './chess-board/LetterNotation';
@@ -6,7 +6,6 @@ import LegalMoveIndicator from './chess-board/LegalMoveIndicator';
 import ChessSquare from './chess-board/ChessSquare';
 import NumberNotation from './chess-board/NumberNotation';
 import { drawArrow } from '../utils/canvas';
-import useWindowSize from '../hooks/useWindowSize';
 import Confetti from 'react-confetti';
 import MoveSound from '/move.wav';
 import CaptureSound from '/capture.wav';
@@ -43,6 +42,13 @@ function getBoardSquareClass(theme: string, isDark: boolean) {
   }
   return isDark ? 'bg-boardDark' : 'bg-boardLight';
 }
+
+// A single cell from chess.js's board(): a piece, or null when the square is empty.
+type BoardCell = { square: Square; type: PieceSymbol; color: Color } | null;
+
+// Created once at module scope so a new Audio object isn't allocated every render.
+const moveAudio = new Audio(MoveSound);
+const captureAudio = new Audio(CaptureSound);
 
 export const ChessBoard = memo(
   ({
@@ -98,8 +104,6 @@ export const ChessBoard = memo(
     const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
     const boxSize = 80;
     const [gameOver, setGameOver] = useState(false);
-    const moveAudio = new Audio(MoveSound);
-    const captureAudio = new Audio(CaptureSound);
 
     const handleMouseDown = (e: MouseEvent<HTMLDivElement>, squareRep: string) => {
       e.preventDefault();
@@ -202,6 +206,74 @@ export const ChessBoard = memo(
       }
     }, [moves]);
 
+    // Handles a click on a board square: select a piece, switch the selection,
+    // deselect it, or attempt a move from the currently-selected square.
+    const handleSquareClick = (squareRep: Square, piece: BoardCell) => {
+      if (!started) return;
+
+      // If the user was reviewing earlier moves, snap back to the live position.
+      if (userSelectedMoveIndex !== null) {
+        chess.reset();
+        moves.forEach((m) => chess.move({ from: m.from, to: m.to }));
+        setBoard(chess.board());
+        setUserSelectedMoveIndex(null);
+        return;
+      }
+
+      if (!isMyTurn) return;
+
+      // Nothing selected yet: select the square only if it holds one of our pieces.
+      if (!from) {
+        if (piece && piece.color === chess.turn()) {
+          setFrom(squareRep);
+          setLegalMoves(
+            chess.moves({ verbose: true, square: squareRep }).map((m) => m.to),
+          );
+        }
+        return;
+      }
+
+      // Clicking the already-selected square clears the selection.
+      if (from === squareRep) {
+        setFrom(null);
+        setLegalMoves([]);
+        return;
+      }
+
+      // Clicking another of our own pieces switches the selection.
+      if (piece && piece.color === chess.turn()) {
+        setFrom(squareRep);
+        setLegalMoves(
+          chess.moves({ verbose: true, square: squareRep }).map((m) => m.to),
+        );
+        return;
+      }
+
+      // Otherwise attempt a move from the selected square to the clicked one.
+      try {
+        const moveResult = isPromoting(chess, from, squareRep)
+          ? chess.move({ from, to: squareRep, promotion: 'q' })
+          : chess.move({ from, to: squareRep });
+
+        if (moveResult) {
+          moveAudio.play();
+          if (moveResult.captured) captureAudio.play();
+          setMoves((prev) => [...prev, moveResult]);
+          setFrom(null);
+          setLegalMoves([]);
+          if (moveResult.san.includes('#')) setGameOver(true);
+          socket.send(
+            JSON.stringify({
+              type: MOVE,
+              payload: { gameId, move: moveResult },
+            }),
+          );
+        }
+      } catch (e) {
+        console.log('Invalid move', e);
+      }
+    };
+
     return (
       <>
         {gameOver && <Confetti />}
@@ -219,7 +291,6 @@ export const ChessBoard = memo(
                     j = isFlipped ? 7 - (j % 8) : j % 8;
 
                     const isMainBoxColor = (i + j) % 2 !== 0;
-                    const isPiece: boolean = !!square;
                     const squareRepresentation = (String.fromCharCode(97 + j) +
                       '' +
                       i) as Square;
@@ -238,90 +309,7 @@ export const ChessBoard = memo(
 
                     return (
                       <div
-                        onClick={() => {
-                          if (!started) return;
-                          if (userSelectedMoveIndex !== null) {
-                            chess.reset();
-                            moves.forEach((move) => {
-                              chess.move({ from: move.from, to: move.to });
-                            });
-                            setBoard(chess.board());
-                            setUserSelectedMoveIndex(null);
-                            return;
-                          }
-                          if (!from && square?.color !== chess.turn()) return;
-                          if (!isMyTurn) return;
-                          if (from != squareRepresentation) {
-                            setFrom(squareRepresentation);
-                            if (isPiece) {
-                              setLegalMoves(
-                                chess
-                                  .moves({
-                                    verbose: true,
-                                    square: square?.square,
-                                  })
-                                  .map((move) => move.to),
-                              );
-                            }
-                          } else {
-                            setFrom(null);
-                          }
-                          if (!isPiece) {
-                            setLegalMoves([]);
-                          }
-
-                          if (!from) {
-                            setFrom(squareRepresentation);
-                            setLegalMoves(
-                              chess
-                                .moves({
-                                  verbose: true,
-                                  square: square?.square,
-                                })
-                                .map((move) => move.to),
-                            );
-                          } else {
-                            try {
-                              let moveResult: Move;
-                              if (isPromoting(chess, from, squareRepresentation)) {
-                                moveResult = chess.move({
-                                  from,
-                                  to: squareRepresentation,
-                                  promotion: 'q',
-                                });
-                              } else {
-                                moveResult = chess.move({
-                                  from,
-                                  to: squareRepresentation,
-                                });
-                              }
-                              if (moveResult) {
-                                moveAudio.play();
-
-                                if (moveResult?.captured) {
-                                  captureAudio.play();
-                                }
-                                setMoves((prev) => [...prev, moveResult]);
-                                setFrom(null);
-                                setLegalMoves([]);
-                                if (moveResult.san.includes('#')) {
-                                  setGameOver(true);
-                                }
-                                socket.send(
-                                  JSON.stringify({
-                                    type: MOVE,
-                                    payload: {
-                                      gameId,
-                                      move: moveResult,
-                                    },
-                                  }),
-                                );
-                              }
-                            } catch (e) {
-                              console.log('e', e);
-                            }
-                          }
-                        }}
+                        onClick={() => handleSquareClick(squareRepresentation, square)}
                         style={{
                           width: boxSize,
                           height: boxSize,

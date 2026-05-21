@@ -1,4 +1,4 @@
-import { GameResult } from '@prisma/client';
+import { GameResult, GameStatus } from '@prisma/client';
 import { db } from '../db';
 import { GameHistoryService } from './gameHistoryService';
 import { RatingService } from './ratingService';
@@ -7,7 +7,7 @@ const ratingService = new RatingService();
 const gameHistoryService = new GameHistoryService();
 
 export class GameService {
-  async completeGameWithRatings(gameId: string, result: GameResult) {
+  async completeGameWithRatings(gameId: string, result: GameResult, status: GameStatus) {
     const game = await db.game.findUnique({
       where: { id: gameId },
       include: {
@@ -33,6 +33,8 @@ export class GameService {
       whiteRating,
       blackRating,
       result,
+      whiteRatingRow?.gamesPlayed ?? 0,
+      blackRatingRow?.gamesPlayed ?? 0,
     );
 
     const gameDurationSeconds = Math.round((Date.now() - game.startAt.getTime()) / 1000);
@@ -42,6 +44,7 @@ export class GameService {
       whitePlayerId: game.whitePlayerId,
       blackPlayerId: game.blackPlayerId,
       result,
+      status,
       whiteRatingBefore: whiteRating,
       blackRatingBefore: blackRating,
       whiteRatingAfter: whiteNewRating,

@@ -6,14 +6,12 @@
     "dev": "turbo dev"
   },
   "devDependencies": {
-    "@repo/eslint-config": "*",
-    "@repo/typescript-config": "*",
     "turbo": "latest"
   },
   "engines": {
     "node": ">=18 <24"
   },
-  "packageManager": "yarn@1.22.21",
+  "packageManager": "npm@10.9.3",
   "workspaces": [
     "apps/*",
     "packages/*"

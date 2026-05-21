@@ -11,6 +11,8 @@ import { socketManager } from './SocketManager';
 import { GameService } from './services/gameService';
 
 const GAME_TIME_MS = 10 * 60 * 1000;
+// How long a disconnected player has to reconnect before forfeiting the game.
+const DISCONNECT_GRACE_MS = 30 * 1000;
 const gameService = new GameService();
 
 export function isPromoting(chess: Chess, from: Square, to: Square) {
@@ -42,10 +44,12 @@ export class Game {
     public player1UserId: string;
     public player2UserId: string | null;
     public board: Chess;
-    private moveCount = 0;
-    private timer: NodeJS.Timeout | null = null;
-    private moveTimer: NodeJS.Timeout | null = null;
     public result: GAME_RESULT | null = null;
+    // Set by GameManager so a finished game can remove itself from the live list.
+    public onEnded: ((gameId: string) => void) | null = null;
+    private moveCount = 0;
+    private disconnectTimer: NodeJS.Timeout | null = null;
+    private moveTimer: NodeJS.Timeout | null = null;
     private player1TimeConsumed = 0;
     private player2TimeConsumed = 0;
     private startTime = new Date(Date.now());
@@ -101,7 +105,6 @@ export class Game {
                 }
             }
         });
-        this.resetAbandonTimer();
         this.resetMoveTimer();
     }
 
@@ -272,7 +275,6 @@ export class Game {
         this.addMoveToDb(appliedMove, moveTimestamp).catch((err) => {
             console.error('Failed to persist move:', err);
         });
-        this.resetAbandonTimer();
         this.resetMoveTimer();
         this.lastMoveTime = moveTimestamp;
 
@@ -282,7 +284,12 @@ export class Game {
                 : this.board.turn() === 'b'
                     ? 'WHITE_WINS'
                     : 'BLACK_WINS';
-            this.endGame("COMPLETED", result);
+            const reason = this.board.isCheckmate()
+                ? 'Checkmate'
+                : this.board.isStalemate()
+                    ? 'Stalemate'
+                    : 'Draw';
+            await this.endGame('COMPLETED', result, reason);
         }
 
         this.moveCount++;
@@ -302,31 +309,48 @@ export class Game {
         return this.player2TimeConsumed;
     }
 
-    async resetAbandonTimer() {
-        if (this.timer) {
-            clearTimeout(this.timer);
-        }
-        this.timer = setTimeout(() => {
-            this.endGame("ABANDONED", this.board.turn() === 'b' ? 'WHITE_WINS' : 'BLACK_WINS');
-        }, 60 * 1000);
+    // Started when a player's socket closes. If they don't reconnect within the
+    // grace period they forfeit. Cancelled by cancelDisconnectTimer() on rejoin.
+    startDisconnectTimer(disconnectedUserId: string) {
+        if (this.result) return;
+        this.clearDisconnectTimer();
+        this.disconnectTimer = setTimeout(() => {
+            const result: GAME_RESULT =
+                disconnectedUserId === this.player1UserId ? 'BLACK_WINS' : 'WHITE_WINS';
+            this.endGame('ABANDONED', result, 'Abandonment').catch((err) =>
+                console.error('Failed to end abandoned game:', err),
+            );
+        }, DISCONNECT_GRACE_MS);
     }
 
-    async resetMoveTimer() {
+    cancelDisconnectTimer() {
+        this.clearDisconnectTimer();
+    }
+
+    resetMoveTimer() {
         if (this.moveTimer) {
-            clearTimeout(this.moveTimer)
+            clearTimeout(this.moveTimer);
         }
         const turn = this.board.turn();
         const timeLeft = GAME_TIME_MS - (turn === 'w' ? this.player1TimeConsumed : this.player2TimeConsumed);
         this.moveTimer = setTimeout(() => {
-            this.endGame("TIME_UP", turn === 'b' ? 'WHITE_WINS' : 'BLACK_WINS');
+            this.endGame('TIME_UP', turn === 'b' ? 'WHITE_WINS' : 'BLACK_WINS', 'Timeout').catch((err) =>
+                console.error('Failed to end timed-out game:', err),
+            );
         }, timeLeft);
     }
 
     async exitGame(user: User) {
-        this.endGame('PLAYER_EXIT', user.userId === this.player2UserId ? 'WHITE_WINS' : 'BLACK_WINS');
+        await this.endGame(
+            'PLAYER_EXIT',
+            user.userId === this.player2UserId ? 'WHITE_WINS' : 'BLACK_WINS',
+            'Player left',
+        );
     }
 
-    async endGame(status: GAME_STATUS, result: GAME_RESULT) {
+    async endGame(status: GAME_STATUS, result: GAME_RESULT, reason: string) {
+        // Guard against a game ending twice (e.g. a timer fires as a player resigns).
+        if (this.result) return;
         this.result = result;
 
         const updatedGame = await db.game.update({
@@ -341,7 +365,7 @@ export class Game {
 
         let ratingResult = null;
         try {
-            ratingResult = await gameService.completeGameWithRatings(this.gameId, result);
+            ratingResult = await gameService.completeGameWithRatings(this.gameId, result, status);
         } catch (error) {
             console.error('Failed to update ratings:', error);
         }
@@ -353,6 +377,7 @@ export class Game {
                 payload: {
                     result,
                     status,
+                    reason,
                     moves: updatedGame.moves,
                     blackPlayer: {
                         id: updatedGame.blackPlayer.id,
@@ -401,15 +426,24 @@ export class Game {
             }));
         }
 
-        this.clearTimer();
+        this.clearDisconnectTimer();
         this.clearMoveTimer();
+
+        // Let GameManager drop this game from its live list.
+        this.onEnded?.(this.gameId);
     }
 
     clearMoveTimer() {
-        if (this.moveTimer) clearTimeout(this.moveTimer);
+        if (this.moveTimer) {
+            clearTimeout(this.moveTimer);
+            this.moveTimer = null;
+        }
     }
 
-    clearTimer() {
-        if (this.timer) clearTimeout(this.timer);
+    clearDisconnectTimer() {
+        if (this.disconnectTimer) {
+            clearTimeout(this.disconnectTimer);
+            this.disconnectTimer = null;
+        }
     }
 }

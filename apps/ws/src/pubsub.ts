@@ -39,10 +39,10 @@ class RedisPubSub implements PubSub {
 
   async init() {
     if (this.ready) return;
-    // Wrap the module name in a template literal so esbuild can't statically
-    // resolve it — keeps redis as an optional runtime dep.
+    // redis is required lazily and kept out of the bundle (build uses
+    // --external:redis) so the server runs fine when REDIS_URL is not set.
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { createClient } = require(`${'redis'}`);
+    const { createClient } = require('redis');
     this.pub = createClient({ url: this.url });
     this.sub = createClient({ url: this.url });
 

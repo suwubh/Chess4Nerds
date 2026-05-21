@@ -19,8 +19,8 @@ against a minimax engine.
   validation via chess.js
 - Elo-band matchmaking (±100 rating, widens with wait time) and Elo updates
   after each completed game (K=32 standard, 40 provisional, 10 for 2100+)
-- Optional Redis pub/sub for cross-replica broadcasts so the WS layer can be
-  horizontally scaled
+- Optional Redis pub/sub layer that relays room broadcasts between WebSocket
+  replicas (see "Scaling notes" below for what this does and does not cover)
 - Single-player mode against an in-house minimax + alpha-beta engine with
   MVV-LVA move ordering, piece-square evaluation, and easy/medium/hard
   difficulty (search depth 2/3/4)
@@ -33,9 +33,9 @@ against a minimax engine.
 - **Frontend** — React 18, Vite, TypeScript, Tailwind CSS, Recoil, chess.js
 - **Backend** — Node.js, Express, Passport (Google / GitHub OAuth), JWT
 - **WebSocket server** — `ws`, JWT auth, chess.js validation, in-house
-  minimax engine, optional Redis pub/sub for multi-replica setups
+  minimax engine, optional Redis pub/sub broadcast relay
 - **Database** — PostgreSQL via Prisma
-- **Monorepo** — Turborepo with shared `db`, `store`, `ui` packages
+- **Monorepo** — Turborepo with shared `db` and `store` packages
 - **CI** — GitHub Actions (Prisma schema validate, builds, tests)
 
 ## Repository layout
@@ -45,12 +45,10 @@ chess4nerds/
 ├── apps/
 │   ├── backend/   # Express REST + OAuth + leaderboard / history endpoints
 │   ├── frontend/  # React + Vite client
-│   ├── ws/        # WebSocket game server
-│   └── native/    # Experimental React Native shell (not actively developed)
+│   └── ws/        # WebSocket game server
 ├── packages/
 │   ├── db/        # Prisma schema + generated client
-│   ├── store/     # Shared Recoil atoms / hooks
-│   └── ui/        # Shared UI primitives
+│   └── store/     # Shared Recoil atoms / hooks
 ```
 
 ## Prerequisites
@@ -170,11 +168,21 @@ Individual apps also expose their own `dev` / `build` scripts (see each
   hard = 4). AI games are never written to the DB and don't affect ratings.
 - When a multiplayer game ends, ratings are recomputed via the Elo formula and
   the leaderboard / per-player stats reflect the change immediately.
-- For horizontal scaling, setting `REDIS_URL` enables a pub/sub layer
-  (`apps/ws/src/pubsub.ts`) so multiple WS replicas behind a sticky load
-  balancer can serve the same set of game rooms. See `proof/` for a docker
-  compose + nginx + k6 setup used to benchmark single-node vs 2-replica
-  throughput.
+- Setting `REDIS_URL` enables a pub/sub layer (`apps/ws/src/pubsub.ts`) that
+  relays room broadcasts to other WS replicas. See "Scaling notes" below for
+  what this covers. `proof/` contains a k6 load-test harness for the WS server.
+
+## Scaling notes
+
+The WebSocket server keeps authoritative game state (the `chess.js` board,
+clocks, timers) and the matchmaking queue in memory. Setting `REDIS_URL` adds a
+pub/sub layer that relays room broadcasts to other replicas — useful for
+read-only fan-out — but it is **not** full horizontal scaling on its own:
+matchmaking and game state are still per-replica. Running multiple replicas
+correctly would additionally require shared matchmaking and either pinning all
+of a game's traffic to one owner replica or moving game state into a shared
+store. The project is intended to run as a single WS instance; the `proof/`
+harness load-tests that single instance.
 
 ## Roadmap
 
@@ -183,7 +191,8 @@ Individual apps also expose their own `dev` / `build` scripts (see each
 - [x] Leaderboard + match history
 - [x] Elo ratings + Elo-band matchmaking
 - [x] Computer opponent (minimax + alpha-beta)
-- [x] Horizontally scalable WS layer (Redis pub/sub)
+- [x] Redis pub/sub broadcast relay for WS replicas
+- [ ] Fully horizontally scalable WS layer (shared matchmaking + game state)
 - [ ] Tournaments
 - [ ] Game replay / analysis
 - [ ] Spectator mode

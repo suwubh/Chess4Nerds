@@ -19,16 +19,13 @@
     "VITE_APP_BACKEND_URL",
     "VITE_APP_WS_URL"
   ],
-  "pipeline": {
+  "tasks": {
     "build": {
       "dependsOn": ["db:generate", "^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]
-    },
-    "lint:fix": {
-      "dependsOn": ["^lint:fix"]
     },
     "dev": {
       "dependsOn": ["^db:generate"],
