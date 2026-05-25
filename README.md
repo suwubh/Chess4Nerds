@@ -6,6 +6,46 @@ A real-time multiplayer chess platform built as a TypeScript monorepo.
 [![Built with Turborepo](https://img.shields.io/badge/Built%20with-Turborepo-EF4444?style=flat-square&logo=turborepo)](https://turbo.build/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
+
+```mermaid
+flowchart TB
+    subgraph Client
+        FE["⬡ React frontend\nVite · Recoil · chess.js · Tailwind"]
+    end
+
+    subgraph Apps["Server apps"]
+        BE["Backend\nExpress · Passport · JWT"]
+        WS["WS server\nws · GameManager · Minimax AI"]
+        RD["Redis pub/sub\nOptional broadcast relay"]
+    end
+
+    subgraph Packages["Shared packages"]
+        DB["@repo/db\nPrisma schema · PrismaClient"]
+        ST["@repo/store\nRecoil atoms · useUser hook"]
+        TB["Turborepo\nMonorepo build pipeline"]
+    end
+
+    subgraph Infra["Infrastructure"]
+        PG[("PostgreSQL\nUsers · Games · Moves · Ratings")]
+        CI["GitHub Actions CI\nLint · Build · Test"]
+        LT["k6 load test\nproof/ harness"]
+    end
+
+    FE -- "REST /auth /api" --> BE
+    FE <-- "WSS" --> WS
+    WS -- "pub/sub" --> RD
+
+    BE --> DB
+    WS --> DB
+    WS --> ST
+    FE --> ST
+
+    DB --> PG
+    BE -.-> CI
+    WS -.-> CI
+    WS -.-> LT
+```
+
 ## Overview
 
 Chess4Nerds lets two players play chess online over WebSockets. It includes
